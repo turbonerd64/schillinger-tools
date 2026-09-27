@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  schillinger-tools:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: schillinger-tools
+    restart: unless-stopped
+    networks:
+      - coolify
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=coolify"
+      - "traefik.http.routers.schillinger-http.entryPoints=http"
+      - "traefik.http.routers.schillinger-http.rule=Host(`schillingertools.arman.love`)"
+      - "traefik.http.routers.schillinger-http.middlewares=schillinger-redirect"
+      - "traefik.http.middlewares.schillinger-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.schillinger-https.entryPoints=https"
+      - "traefik.http.routers.schillinger-https.rule=Host(`schillingertools.arman.love`)"
+      - "traefik.http.routers.schillinger-https.tls=true"
+      - "traefik.http.routers.schillinger-https.tls.certresolver=letsencrypt"
+      - "traefik.http.services.schillinger-https.loadbalancer.server.port=80"
+
+networks:
+  coolify:
+    external: true
