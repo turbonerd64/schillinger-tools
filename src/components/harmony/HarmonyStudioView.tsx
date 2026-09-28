@@ -36,7 +36,6 @@ export const HarmonyStudioView: React.FC<HarmonyStudioViewProps> = ({
   const [structure, setStructure] = useState<ChordStructureType>('S7');
   const [totalChordsCount, setTotalChordsCount] = useState<number>(8);
   const [bpm, setBpm] = useState<number>(90);
-  const [instrument, setInstrument] = useState<'epiano' | 'piano' | 'guitar'>('epiano');
 
   // Active cyclic formula moves
   const [formula, setFormula] = useState<CycleMove[]>([
@@ -46,7 +45,7 @@ export const HarmonyStudioView: React.FC<HarmonyStudioViewProps> = ({
     CYCLE_MOVES.find((m) => m.id === 'c3_down')!,
   ]);
 
-  // Active parallel rails
+  // Active parallel rails (display rails for comparative view)
   const [activeRails, setActiveRails] = useState<ScaleDefinition[]>([
     PARENT_SCALES.find((s) => s.id === 'ionian')!,
     PARENT_SCALES.find((s) => s.id === 'phrygian')!,
@@ -65,15 +64,35 @@ export const HarmonyStudioView: React.FC<HarmonyStudioViewProps> = ({
   // Master progression
   const [masterChords, setMasterChords] = useState<ChordItem[]>([]);
 
-  // Update master chords when parameters change
+  // Update master chords when core formula or length changes (WITHOUT resetting on activeRails change!)
   useEffect(() => {
-    const baseRailId = activeRails[0]?.id || 'ionian';
-    const baseChords = railChordsMap[baseRailId] || [];
-    setMasterChords(baseChords);
+    const baseChords = railChordsMap['ionian'] || Object.values(railChordsMap)[0] || [];
+
+    setMasterChords((prev) => {
+      // If empty or length changed, initialize from base chords
+      if (prev.length === 0 || prev.length !== baseChords.length) {
+        return baseChords;
+      }
+
+      // Preserve modal interchange assignments across each step!
+      const updated = prev.map((oldChord, idx) => {
+        const sourceScaleId = oldChord.sourceScaleId || 'ionian';
+        const sourceRail = railChordsMap[sourceScaleId] || baseChords;
+        const freshChord = sourceRail[idx] || baseChords[idx];
+        return {
+          ...freshChord,
+          stepIndex: idx,
+          isCustomBorrowed: oldChord.isCustomBorrowed,
+        };
+      });
+
+      return applyGreedyVoiceLeading(updated);
+    });
+
     if (onChordCountUpdate) {
       onChordCountUpdate(baseChords.length);
     }
-  }, [railChordsMap, activeRails]);
+  }, [railChordsMap]);
 
   const playTimerRef = useRef<number | null>(null);
   const currentChord = masterChords[selectedChordIndex] || masterChords[0];
@@ -81,7 +100,7 @@ export const HarmonyStudioView: React.FC<HarmonyStudioViewProps> = ({
   const handleSelectChord = (chord: ChordItem, stepIdx: number) => {
     setSelectedChordIndex(stepIdx);
     if (chord.voicedMidiNotes && chord.voicedMidiNotes.length > 0) {
-      audioService.playVoicedChord(chord.voicedMidiNotes, 0.8, instrument);
+      audioService.playVoicedChord(chord.voicedMidiNotes, 0.8, 'piano');
     }
   };
 
@@ -95,7 +114,7 @@ export const HarmonyStudioView: React.FC<HarmonyStudioViewProps> = ({
     const reVoiced = applyGreedyVoiceLeading(updated);
     setMasterChords(reVoiced);
     setSelectedChordIndex(stepIdx);
-    audioService.playVoicedChord(reVoiced[stepIdx].voicedMidiNotes, 0.8, instrument);
+    audioService.playVoicedChord(reVoiced[stepIdx].voicedMidiNotes, 0.8, 'piano');
   };
 
   const handleApplyChunkMode = (scale: ScaleDefinition, startIndex: number, endIndex: number) => {
@@ -108,14 +127,14 @@ export const HarmonyStudioView: React.FC<HarmonyStudioViewProps> = ({
         updated[i] = {
           ...sourceRail[i],
           stepIndex: i,
-          isCustomBorrowed: scale.id !== activeRails[0]?.id,
+          isCustomBorrowed: scale.id !== 'ionian',
         };
       }
     }
     const reVoiced = applyGreedyVoiceLeading(updated);
     setMasterChords(reVoiced);
     if (reVoiced[startIndex]?.voicedMidiNotes) {
-      audioService.playVoicedChord(reVoiced[startIndex].voicedMidiNotes, 0.8, instrument);
+      audioService.playVoicedChord(reVoiced[startIndex].voicedMidiNotes, 0.8, 'piano');
     }
   };
 
@@ -128,14 +147,14 @@ export const HarmonyStudioView: React.FC<HarmonyStudioViewProps> = ({
           const next = (prev + 1) % masterChords.length;
           const nextChord = masterChords[next];
           if (nextChord && nextChord.voicedMidiNotes) {
-            audioService.playVoicedChord(nextChord.voicedMidiNotes, (intervalMs / 1000) * 0.9, instrument);
+            audioService.playVoicedChord(nextChord.voicedMidiNotes, (intervalMs / 1000) * 0.9, 'piano');
           }
           return next;
         });
       }, intervalMs);
 
       if (currentChord && currentChord.voicedMidiNotes) {
-        audioService.playVoicedChord(currentChord.voicedMidiNotes, (intervalMs / 1000) * 0.9, instrument);
+        audioService.playVoicedChord(currentChord.voicedMidiNotes, (intervalMs / 1000) * 0.9, 'piano');
       }
     } else {
       if (playTimerRef.current !== null) {
@@ -149,7 +168,7 @@ export const HarmonyStudioView: React.FC<HarmonyStudioViewProps> = ({
         window.clearInterval(playTimerRef.current);
       }
     };
-  }, [isPlaying, bpm, masterChords, instrument]);
+  }, [isPlaying, bpm, masterChords]);
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
@@ -168,8 +187,6 @@ export const HarmonyStudioView: React.FC<HarmonyStudioViewProps> = ({
         }}
         bpm={bpm}
         setBpm={setBpm}
-        instrument={instrument}
-        setInstrument={setInstrument}
       />
 
       {/* 2. MASTER PROGRESSION LANE FIRST (Above Parallel Rails) */}
@@ -198,7 +215,7 @@ export const HarmonyStudioView: React.FC<HarmonyStudioViewProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <InteractivePiano
           activeMidiNotes={currentChord?.voicedMidiNotes || []}
-          onPlayNote={(midi) => audioService.playVoicedChord([midi], 0.6, instrument)}
+          onPlayNote={(midi) => audioService.playVoicedChord([midi], 0.6, 'piano')}
         />
 
         <InteractiveFretboard

@@ -23,8 +23,6 @@ interface FormulaBarProps {
   setTotalChordsCount: (count: number) => void;
   bpm: number;
   setBpm: (bpm: number) => void;
-  instrument: 'epiano' | 'piano' | 'guitar';
-  setInstrument: (inst: 'epiano' | 'piano' | 'guitar') => void;
 }
 
 export const FormulaBar: React.FC<FormulaBarProps> = ({
@@ -38,8 +36,6 @@ export const FormulaBar: React.FC<FormulaBarProps> = ({
   setTotalChordsCount,
   bpm,
   setBpm,
-  instrument,
-  setInstrument,
 }) => {
   const addMove = (move: CycleMove) => {
     if (formula.length < 8) {
@@ -117,7 +113,7 @@ export const FormulaBar: React.FC<FormulaBarProps> = ({
       {/* Main Parameters Grid with larger text */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-3 sm:gap-4">
         {/* Tonic Key */}
-        <div className="md:col-span-3 p-3.5 rounded-xl bg-slate-50 border-2 border-slate-200 space-y-2">
+        <div className="md:col-span-4 p-3.5 rounded-xl bg-slate-50 border-2 border-slate-200 space-y-2">
           <label className="text-xs sm:text-sm font-extrabold text-slate-800 uppercase tracking-wider block font-mono">
             Tonic Root Key
           </label>
@@ -139,7 +135,7 @@ export const FormulaBar: React.FC<FormulaBarProps> = ({
         </div>
 
         {/* Chord Structure */}
-        <div className="md:col-span-2 p-3.5 rounded-xl bg-slate-50 border-2 border-slate-200 space-y-2">
+        <div className="md:col-span-3 p-3.5 rounded-xl bg-slate-50 border-2 border-slate-200 space-y-2">
           <label className="text-xs sm:text-sm font-extrabold text-slate-800 uppercase tracking-wider block font-mono">
             Chord Density
           </label>
@@ -152,7 +148,7 @@ export const FormulaBar: React.FC<FormulaBarProps> = ({
               <button
                 key={item.id}
                 onClick={() => setStructure(item.id as ChordStructureType)}
-                className={`flex-1 py-2 px-0.5 rounded-xl text-xs sm:text-sm font-extrabold font-mono border-2 transition-all ${
+                className={`flex-1 py-2 px-1 rounded-xl text-xs sm:text-sm font-extrabold font-mono border-2 transition-all ${
                   structure === item.id
                     ? 'bg-slate-900 border-slate-900 text-white shadow-2xs'
                     : 'bg-white border-slate-300 text-slate-700 hover:border-slate-800'
@@ -165,40 +161,14 @@ export const FormulaBar: React.FC<FormulaBarProps> = ({
           </div>
         </div>
 
-        {/* Instrument Selector */}
-        <div className="md:col-span-3 p-3.5 rounded-xl bg-slate-50 border-2 border-slate-200 space-y-2">
-          <label className="text-xs sm:text-sm font-extrabold text-slate-800 uppercase tracking-wider block font-mono">
-            Instrument Timbre
-          </label>
-          <div className="flex gap-1.5">
-            {[
-              { id: 'epiano', label: 'Rhodes' },
-              { id: 'piano', label: 'Piano' },
-              { id: 'guitar', label: 'Guitar' },
-            ].map((inst) => (
-              <button
-                key={inst.id}
-                onClick={() => setInstrument(inst.id as 'epiano' | 'piano' | 'guitar')}
-                className={`flex-1 py-2 px-1 rounded-xl text-xs sm:text-sm font-extrabold font-mono border-2 transition-all ${
-                  instrument === inst.id
-                    ? 'bg-[#c84b31] border-[#c84b31] text-white shadow-2xs'
-                    : 'bg-white border-slate-300 text-slate-700 hover:border-slate-800'
-                }`}
-              >
-                {inst.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
         {/* Progression Length */}
-        <div className="md:col-span-2 p-3.5 rounded-xl bg-slate-50 border-2 border-slate-200 space-y-2">
+        <div className="md:col-span-3 p-3.5 rounded-xl bg-slate-50 border-2 border-slate-200 space-y-2">
           <div className="flex items-center justify-between">
             <label className="text-xs sm:text-sm font-extrabold text-slate-800 uppercase tracking-wider font-mono">
-              Length
+              Progression Length
             </label>
-            <span className="text-xs sm:text-sm font-mono font-extrabold text-[#c84b31] bg-white px-1.5 py-0.5 rounded border border-slate-300">
-              {totalChordsCount} ch
+            <span className="text-xs sm:text-sm font-mono font-extrabold text-[#c84b31] bg-white px-2 py-0.5 rounded border border-slate-300">
+              {totalChordsCount} chords
             </span>
           </div>
           <input

@@ -112,7 +112,7 @@ export const TheoryPrimer: React.FC = () => {
           </p>
 
           <p>
-            In his broader theory, chords move according to <strong>Harmonic Root Cycles</strong> ($C$) through any chosen <strong>Parent Scale</strong>:
+            In his broader theory, chords move according to <strong>Harmonic Root Cycles</strong> (C) through any chosen <strong>Parent Scale</strong>:
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2">
@@ -121,7 +121,7 @@ export const TheoryPrimer: React.FC = () => {
                 Cycle of 3rds (C3)
               </span>
               <p className="text-xs sm:text-sm text-slate-700 pt-1">
-                Moves by two scale degrees. Moving down a third ($C_3\downarrow$) is equivalent to moving up a sixth, creating lush tertian shifts.
+                Moves by two scale degrees. Moving down a third (C₃ ↓) is equivalent to moving up a sixth, creating lush tertian shifts.
               </p>
             </div>
 
@@ -130,7 +130,7 @@ export const TheoryPrimer: React.FC = () => {
                 Cycle of 5ths (C5)
               </span>
               <p className="text-xs sm:text-sm text-slate-700 pt-1">
-                Moves by four scale degrees. Descending ($C_5\downarrow$) produces the familiar circle-of-fifths root progression.
+                Moves by four scale degrees. Descending (C₅ ↓) produces the familiar circle-of-fifths root progression.
               </p>
             </div>
 
@@ -139,7 +139,7 @@ export const TheoryPrimer: React.FC = () => {
                 Cycle of 7ths (C7)
               </span>
               <p className="text-xs sm:text-sm text-slate-700 pt-1">
-                Moves by six scale degrees (or step-wise). Descending ($C_7\downarrow$) steps upward into the adjacent degree.
+                Moves by six scale degrees (or step-wise). Descending (C₇ ↓) steps upward into the adjacent degree.
               </p>
             </div>
           </div>

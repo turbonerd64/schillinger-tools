@@ -146,7 +146,7 @@ export const MasterProgressionLane: React.FC<MasterProgressionLaneProps> = ({
 
       {/* Horizontal Master Sequence with Full Color Matching and Drag Selection */}
       <div
-        className="overflow-x-auto w-full py-3 flex items-center gap-3 select-none"
+        className="overflow-x-auto w-full py-2 sm:py-3 flex items-center gap-1.5 sm:gap-3 select-none"
         style={{ WebkitOverflowScrolling: 'touch' }}
       >
         {masterChords.map((chord, idx) => {
@@ -165,26 +165,26 @@ export const MasterProgressionLane: React.FC<MasterProgressionLaneProps> = ({
                 style={{
                   backgroundColor: chord.sourceColor,
                 }}
-                className={`w-24 sm:w-28 py-4 px-2.5 rounded-2xl font-bold font-mono transition-all text-center border-2 text-white relative shadow-sm cursor-pointer select-none ${
+                className={`w-14 sm:w-28 py-2 sm:py-4 px-1 sm:px-2.5 rounded-xl sm:rounded-2xl font-bold font-mono transition-all text-center border-2 text-white relative shadow-sm cursor-pointer select-none ${
                   isSelected
-                    ? 'ring-4 ring-[#c84b31] border-white scale-105 z-10 shadow-lg'
+                    ? 'ring-3 sm:ring-4 ring-[#c84b31] border-white scale-105 z-10 shadow-lg'
                     : isCurrent
-                    ? 'ring-4 ring-slate-900 border-white scale-105 shadow-md'
+                    ? 'ring-3 sm:ring-4 ring-slate-900 border-white scale-105 shadow-md'
                     : 'border-slate-900/40 hover:brightness-110'
                 }`}
                 title={`Click or drag to select • Source: ${chord.sourceScaleName}`}
               >
                 {/* Chord Symbol */}
-                <div className="text-base sm:text-lg font-extrabold tracking-tight drop-shadow-xs">
+                <div className="text-xs sm:text-lg font-black tracking-tight drop-shadow-xs">
                   {chord.chordName}
                 </div>
                 {/* Roman Numeral */}
-                <div className="text-xs sm:text-sm opacity-90 font-mono mt-1 font-bold">
+                <div className="text-[9px] sm:text-sm opacity-90 font-mono mt-0.5 sm:mt-1 font-bold">
                   {chord.romanNumeral}
                 </div>
 
                 {isSelected && (
-                  <span className="absolute -top-2.5 -right-1 bg-[#c84b31] text-white text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full border border-white shadow-xs">
+                  <span className="absolute -top-2 -right-1 bg-[#c84b31] text-white text-[7px] sm:text-[9px] font-black uppercase tracking-wider px-1 py-0.2 rounded-full border border-white shadow-xs">
                     Sel
                   </span>
                 )}
@@ -192,7 +192,7 @@ export const MasterProgressionLane: React.FC<MasterProgressionLaneProps> = ({
 
               {/* Source Scale Name Tag */}
               <span
-                className={`text-xs font-mono font-bold mt-1.5 px-2 py-0.5 rounded-full border transition-all ${
+                className={`text-[9px] sm:text-xs font-mono font-bold mt-1 px-1 sm:px-2 py-0.5 rounded-full border transition-all ${
                   isSelected
                     ? 'bg-[#c84b31] text-white border-[#c84b31]'
                     : 'bg-slate-50 border-slate-300 text-slate-700'
@@ -208,9 +208,9 @@ export const MasterProgressionLane: React.FC<MasterProgressionLaneProps> = ({
       {/* Floating Context-Menu Popover (Fixed, never pushes down the lane or gets clipped!) */}
       {popoverPos && selectedRange !== null && (
         <>
-          {/* Backdrop Scrim */}
+          {/* Transparent Backdrop Click-catcher (Zero darkening, zero blur) */}
           <div
-            className="fixed inset-0 z-40 bg-slate-950/20 backdrop-blur-[1px]"
+            className="fixed inset-0 z-40 bg-transparent"
             onClick={closePopover}
           />
 

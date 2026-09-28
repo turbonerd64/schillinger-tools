@@ -113,7 +113,7 @@ export const ParallelModeRails: React.FC<ParallelModeRailsProps> = ({
 
               {/* Horizontal Scrollable Chords Sequence */}
               <div
-                className="overflow-x-auto w-full py-2 flex items-center gap-3 select-none"
+                className="overflow-x-auto w-full py-2 flex items-center gap-1.5 sm:gap-3 select-none"
                 style={{ WebkitOverflowScrolling: 'touch' }}
               >
                 {chords.map((chord, stepIdx) => {
@@ -135,9 +135,9 @@ export const ParallelModeRails: React.FC<ParallelModeRailsProps> = ({
                           onSwapIntoMaster(chord, stepIdx);
                         }}
                         style={isSoundingInMaster ? { backgroundColor: scale.color } : undefined}
-                        className={`w-24 sm:w-28 py-3.5 px-2 rounded-2xl font-bold font-mono transition-all text-center border-2 relative shadow-sm active:scale-95 ${
+                        className={`w-14 sm:w-28 py-2 sm:py-3.5 px-1 sm:px-2 rounded-xl sm:rounded-2xl font-bold font-mono transition-all text-center border-2 relative shadow-sm active:scale-95 ${
                           isSoundingInMaster
-                            ? 'text-white border-white ring-4 ring-slate-900 scale-105 shadow-xl z-20'
+                            ? 'text-white border-white ring-3 sm:ring-4 ring-slate-900 scale-105 shadow-xl z-20'
                             : isColumnActive
                             ? 'bg-white/90 border-slate-400 text-slate-800 ring-2 ring-slate-300 opacity-80'
                             : isFirstInCycle
@@ -146,10 +146,10 @@ export const ParallelModeRails: React.FC<ParallelModeRailsProps> = ({
                         }`}
                         title="Click to preview • Double-click to swap into Master"
                       >
-                        <div className="text-base sm:text-lg font-extrabold tracking-tight">
+                        <div className="text-xs sm:text-lg font-black tracking-tight">
                           {chord.chordName}
                         </div>
-                        <div className="text-xs sm:text-sm opacity-85 font-mono mt-0.5 font-bold">
+                        <div className="text-[9px] sm:text-sm opacity-85 font-mono mt-0.5 font-bold">
                           {chord.romanNumeral}
                         </div>
 
@@ -167,11 +167,11 @@ export const ParallelModeRails: React.FC<ParallelModeRailsProps> = ({
                       </button>
 
                       {isSoundingInMaster ? (
-                        <span className="text-[10px] font-mono font-extrabold text-white bg-slate-900 px-2 py-0.5 rounded-full mt-1.5 shadow-sm">
+                        <span className="text-[8px] sm:text-[10px] font-mono font-extrabold text-white bg-slate-900 px-1 sm:px-2 py-0.5 rounded-full mt-1 shadow-sm">
                           ● Active
                         </span>
                       ) : (
-                        <span className="text-xs font-mono font-bold text-slate-500 mt-1">
+                        <span className="text-[9px] sm:text-xs font-mono font-bold text-slate-500 mt-1">
                           #{stepIdx + 1}
                         </span>
                       )}
