@@ -33,12 +33,14 @@ export const MultiLaneVisualizer: React.FC<MultiLaneVisualizerProps> = ({
 
   // Visual layout dimensions
   const laneHeight = 56;
-  const laneGap = 14;
+  const laneGap = 16;
   const numLanes = lanes.length;
   // Dynamic tick width
   const tickWidth = Math.max(46, Math.min(76, 920 / totalLength));
   const svgWidth = totalLength * tickWidth;
-  const svgHeight = numLanes * (laneHeight + laneGap) + 42;
+  const rulerHeight = 28;
+  const lanesStartY = 50;
+  const svgHeight = lanesStartY + numLanes * (laneHeight + laneGap) + 32;
 
   const measureLineXs = measureBars.map((barTick) => barTick * tickWidth);
 
@@ -105,6 +107,43 @@ export const MultiLaneVisualizer: React.FC<MultiLaneVisualizerProps> = ({
           height={svgHeight}
           className="overflow-visible block mx-auto"
         >
+          {/* Top Measure Ruler Strip */}
+          <rect
+            x={0}
+            y={4}
+            width={svgWidth}
+            height={rulerHeight}
+            rx={6}
+            fill="#e2e8f0"
+            stroke="#cbd5e1"
+            strokeWidth={1.5}
+          />
+
+          {/* Metric measure dividers and Bar labels */}
+          {measureLineXs.map((mX, mIdx) => (
+            <g key={`measure-${mIdx}`}>
+              <line
+                x1={mX}
+                y1={4}
+                x2={mX}
+                y2={svgHeight - 16}
+                stroke="#0f172a"
+                strokeWidth={2.5}
+                strokeLinecap="round"
+              />
+              <text
+                x={mX + 6}
+                y={22}
+                fill="#0f172a"
+                fontSize="12"
+                fontFamily="monospace"
+                fontWeight="800"
+              >
+                Bar {mIdx + 1}
+              </text>
+            </g>
+          ))}
+
           {/* Atomic pulse grid vertical ticks */}
           {Array.from({ length: totalLength + 1 }).map((_, tick) => {
             const x = tick * tickWidth;
@@ -112,7 +151,7 @@ export const MultiLaneVisualizer: React.FC<MultiLaneVisualizerProps> = ({
               <g key={`grid-tick-${tick}`}>
                 <line
                   x1={x}
-                  y1={16}
+                  y1={rulerHeight + 6}
                   x2={x}
                   y2={svgHeight - 16}
                   stroke="#cbd5e1"
@@ -141,7 +180,7 @@ export const MultiLaneVisualizer: React.FC<MultiLaneVisualizerProps> = ({
               <line
                 key={`cut-${cutTick}`}
                 x1={x}
-                y1={20}
+                y1={rulerHeight + 8}
                 x2={x}
                 y2={svgHeight - 20}
                 stroke="#64748b"
@@ -154,7 +193,7 @@ export const MultiLaneVisualizer: React.FC<MultiLaneVisualizerProps> = ({
 
           {/* Lanes and Duration Blocks */}
           {lanes.map((lane, laneIdx) => {
-            const y = 24 + laneIdx * (laneHeight + laneGap);
+            const y = lanesStartY + laneIdx * (laneHeight + laneGap);
             const isResultant = lane.id === 'resultant';
             const baseColor =
               lane.color ||
@@ -180,10 +219,10 @@ export const MultiLaneVisualizer: React.FC<MultiLaneVisualizerProps> = ({
                   strokeWidth={2}
                 />
 
-                {/* Lane Label */}
+                {/* Lane Label - Positioned cleanly above each lane */}
                 <text
                   x={8}
-                  y={y - 6}
+                  y={y - 7}
                   fill="#0f172a"
                   fontSize="13"
                   fontWeight="800"
@@ -218,13 +257,13 @@ export const MultiLaneVisualizer: React.FC<MultiLaneVisualizerProps> = ({
                         strokeWidth={isBlockActive ? 3 : 1}
                       />
 
-                      {/* Integer duration label inside block */}
-                      {blockW > 18 && (
+                      {/* Integer duration label inside block - Black text & slightly larger */}
+                      {blockW > 14 && (
                         <text
                           x={blockX + blockW / 2}
-                          y={y + laneHeight / 2 + 5}
-                          fill="#ffffff"
-                          fontSize="16"
+                          y={y + laneHeight / 2 + 6}
+                          fill="#0f172a"
+                          fontSize={blockW > 28 ? "19" : "15"}
                           fontWeight="900"
                           fontFamily="monospace"
                           textAnchor="middle"
@@ -234,20 +273,20 @@ export const MultiLaneVisualizer: React.FC<MultiLaneVisualizerProps> = ({
                         </text>
                       )}
 
-                      {/* Accent caret (>) */}
+                      {/* Accent caret (>) & dot */}
                       {block.isAccented && (
                         <g>
                           <circle
                             cx={blockX + 9}
                             cy={y + 13}
-                            r={4}
-                            fill="#ffffff"
+                            r={3.5}
+                            fill="#0f172a"
                           />
                           <text
-                            x={blockX + 20}
+                            x={blockX + 18}
                             y={y + 18}
-                            fill="#ffffff"
-                            fontSize="15"
+                            fill="#0f172a"
+                            fontSize="16"
                             fontWeight="900"
                             fontFamily="monospace"
                             pointerEvents="none"
@@ -262,31 +301,6 @@ export const MultiLaneVisualizer: React.FC<MultiLaneVisualizerProps> = ({
               </g>
             );
           })}
-
-          {/* Metric measure dividers */}
-          {measureLineXs.map((mX, mIdx) => (
-            <g key={`measure-${mIdx}`}>
-              <line
-                x1={mX}
-                y1={16}
-                x2={mX}
-                y2={svgHeight - 16}
-                stroke="#0f172a"
-                strokeWidth={3}
-                strokeLinecap="round"
-              />
-              <text
-                x={mX + 6}
-                y={18}
-                fill="#0f172a"
-                fontSize="12"
-                fontFamily="monospace"
-                fontWeight="800"
-              >
-                Bar {mIdx + 1}
-              </text>
-            </g>
-          ))}
 
           {/* Real-time Hardware Playhead Cursor - Instant teleport on wrap */}
           <g
