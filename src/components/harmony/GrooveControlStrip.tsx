@@ -24,7 +24,6 @@ interface GrooveControlStripProps {
   includePercussion: boolean;
   setIncludePercussion: (include: boolean) => void;
   activeGroove: HarmonyGroovePattern;
-  onSelectLiveRhythm?: () => void;
   liveRhythmName?: string;
 }
 
@@ -37,7 +36,6 @@ export const GrooveControlStrip: React.FC<GrooveControlStripProps> = ({
   includePercussion,
   setIncludePercussion,
   activeGroove,
-  onSelectLiveRhythm,
   liveRhythmName,
 }) => {
   const isStraightMode = grooveStyle === 'sustained';
@@ -50,12 +48,8 @@ export const GrooveControlStrip: React.FC<GrooveControlStripProps> = ({
   const symmetricPresets = groovePresets.filter((p) => p.id !== 'live_rhythm' && p.category === 'Symmetric');
   const complexPresets = groovePresets.filter((p) => p.id !== 'live_rhythm' && p.category === 'Complex');
 
-  const stylesList: Array<{ id: GrooveStyle; label: string; desc: string }> = [
-    {
-      id: 'sustained',
-      label: 'Straight (No Groove)',
-      desc: 'Clean sustained pads, rhythm muted',
-    },
+  // Texture styles available during groove playback
+  const grooveStylesList: Array<{ id: GrooveStyle; label: string; desc: string }> = [
     {
       id: 'comping',
       label: 'Rhythmic Comping',
@@ -151,49 +145,46 @@ export const GrooveControlStrip: React.FC<GrooveControlStripProps> = ({
         </div>
       </div>
 
-      {/* Top Quick Actions Bar: Custom Inherit vs Straight */}
+      {/* Top 2-Button Mode Toggle: Groove vs Straight */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {/* Custom (Inherit from Rhythm Tab) Button */}
+        {/* Groove Button */}
         <button
           onClick={() => {
-            if (onSelectLiveRhythm) {
-              onSelectLiveRhythm();
-            } else {
-              onSelectGroove('live_rhythm');
-              if (isStraightMode) setGrooveStyle('comping');
+            if (isStraightMode) {
+              setGrooveStyle('comping');
             }
           }}
-          className={`p-3 rounded-xl border-2 transition-all text-left flex items-center justify-between gap-3 shadow-2xs active:scale-98 ${
-            isInheritedActive && !isStraightMode
+          className={`p-3.5 rounded-xl border-2 transition-all text-left flex items-center justify-between gap-3 shadow-2xs active:scale-98 ${
+            !isStraightMode
               ? 'bg-[#fdf0ec] border-[#c84b31] ring-2 ring-[#c84b31]/30 text-slate-900'
               : 'bg-slate-50 border-slate-300 hover:border-slate-800 text-slate-700 hover:bg-white'
           }`}
-          title="Inherit resultant rhythm directly from active Rhythm Studio tab"
+          title="Play chord progression with rhythmic groove and pulse articulation"
         >
           <div className="flex items-center gap-3 min-w-0">
-            <div className={`p-2 rounded-lg shrink-0 ${isInheritedActive && !isStraightMode ? 'bg-[#c84b31] text-white' : 'bg-slate-200 text-slate-700'}`}>
-              <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />
+            <div className={`p-2 rounded-lg shrink-0 ${!isStraightMode ? 'bg-[#c84b31] text-white' : 'bg-slate-200 text-slate-700'}`}>
+              <Activity className="w-5 h-5" />
             </div>
             <div className="min-w-0">
               <div className="text-xs sm:text-sm font-extrabold font-mono flex items-center gap-1.5 truncate">
-                <span>Custom (Inherit from Rhythm Tab)</span>
+                <span>Groove</span>
               </div>
               <div className="text-[11px] text-slate-500 font-sans truncate">
-                {liveRhythmName ? `Linked to: ${liveRhythmName}` : 'Sync with live resultant in Rhythm Studio'}
+                Pattern: <strong className="text-slate-800">{activeGroove.name}</strong>
               </div>
             </div>
           </div>
-          {isInheritedActive && !isStraightMode && (
+          {!isStraightMode && (
             <span className="text-[10px] font-mono font-extrabold px-2 py-0.5 rounded-full bg-[#c84b31] text-white shrink-0">
-              LINKED
+              ACTIVE
             </span>
           )}
         </button>
 
-        {/* Straight / No Groove Button */}
+        {/* Straight Button */}
         <button
           onClick={() => setGrooveStyle('sustained')}
-          className={`p-3 rounded-xl border-2 transition-all text-left flex items-center justify-between gap-3 shadow-2xs active:scale-98 ${
+          className={`p-3.5 rounded-xl border-2 transition-all text-left flex items-center justify-between gap-3 shadow-2xs active:scale-98 ${
             isStraightMode
               ? 'bg-slate-900 border-slate-900 ring-2 ring-slate-900/30 text-white'
               : 'bg-slate-50 border-slate-300 hover:border-slate-800 text-slate-700 hover:bg-white'
@@ -202,20 +193,20 @@ export const GrooveControlStrip: React.FC<GrooveControlStripProps> = ({
         >
           <div className="flex items-center gap-3 min-w-0">
             <div className={`p-2 rounded-lg shrink-0 ${isStraightMode ? 'bg-amber-400 text-slate-900' : 'bg-slate-200 text-slate-700'}`}>
-              <VolumeX className="w-4 h-4 sm:w-5 sm:h-5" />
+              <VolumeX className="w-5 h-5" />
             </div>
             <div className="min-w-0">
               <div className="text-xs sm:text-sm font-extrabold font-mono truncate">
-                <span>Straight (No Groove)</span>
+                <span>Straight</span>
               </div>
               <div className={`text-[11px] truncate ${isStraightMode ? 'text-slate-300' : 'text-slate-500'}`}>
-                Sustained whole-measure pads &bull; Rhythm muted
+                Whole-measure chord pads &bull; Rhythm muted
               </div>
             </div>
           </div>
           {isStraightMode && (
             <span className="text-[10px] font-mono font-extrabold px-2 py-0.5 rounded-full bg-amber-400 text-slate-900 shrink-0">
-              STRAIGHT
+              ACTIVE
             </span>
           )}
         </button>
@@ -260,11 +251,11 @@ export const GrooveControlStrip: React.FC<GrooveControlStripProps> = ({
         {/* Left: Texture Realization Modes */}
         <div className="lg:col-span-8 space-y-2">
           <div className="text-xs font-mono font-bold uppercase tracking-wider text-slate-500">
-            Realization Texture (Arrangement Style):
+            Realization Texture (Groove Style):
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            {stylesList.map((st) => {
-              const isSelected = grooveStyle === st.id;
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            {grooveStylesList.map((st) => {
+              const isSelected = !isStraightMode && grooveStyle === st.id;
               return (
                 <button
                   key={st.id}

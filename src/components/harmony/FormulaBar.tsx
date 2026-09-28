@@ -317,10 +317,10 @@ export const FormulaBar: React.FC<FormulaBarProps> = ({
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
             {[
-              { id: 'greedy', label: 'Minimal', desc: 'Nearest path' },
-              { id: 'schillinger_cw', label: 'T_cw (Clockwise)', desc: '1 -> 3 -> 5 -> 7' },
-              { id: 'schillinger_ccw', label: 'T_ccw (Counter)', desc: '1 -> 7 -> 5 -> 3' },
-              { id: 'schillinger_const', label: 'T_const (Hold)', desc: 'Common tones' },
+              { id: 'greedy', label: 'Minimal Motion', desc: 'Nearest path' },
+              { id: 'schillinger_cw', label: 'Clockwise', desc: 'Voice cycle 1→3→5→7' },
+              { id: 'schillinger_ccw', label: 'Counter-CW', desc: 'Voice cycle 1→7→5→3' },
+              { id: 'schillinger_const', label: 'Common Tone', desc: 'Hold shared notes' },
             ].map((vl) => (
               <button
                 key={vl.id}

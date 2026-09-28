@@ -465,12 +465,6 @@ export const HarmonyStudioView: React.FC<HarmonyStudioViewProps> = ({
         includePercussion={includePercussion}
         setIncludePercussion={setIncludePercussion}
         activeGroove={activeGroove}
-        onSelectLiveRhythm={() => {
-          setSelectedGrooveId('live_rhythm');
-          if (grooveStyle === 'sustained') {
-            setGrooveStyle('comping');
-          }
-        }}
         liveRhythmName={liveRhythm?.name || 'Live Rhythm Studio'}
       />
 
