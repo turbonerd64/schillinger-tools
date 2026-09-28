@@ -1,0 +1,327 @@
+import React from 'react';
+import { SyncMode, MetricGrouping, RhythmVariationState } from '../../core/rhythm/types';
+import { Sliders, Sparkles, Split, Compass, Gauge, ArrowLeftRight, RotateCw, RefreshCw, Cpu } from 'lucide-react';
+import { audioService } from '../../core/audio/synth';
+
+interface UnifiedRhythmControlsProps {
+  a: number;
+  b: number;
+  c: number;
+  setA: (val: number) => void;
+  setB: (val: number) => void;
+  setC: (val: number) => void;
+  mode: SyncMode;
+  setMode: (mode: SyncMode) => void;
+  metricGrouping: MetricGrouping;
+  setMetricGrouping: (grouping: MetricGrouping) => void;
+  totalLength: number;
+  bpm: number;
+  setBpm: (bpm: number) => void;
+  variations: RhythmVariationState;
+  setVariations: React.Dispatch<React.SetStateAction<RhythmVariationState>>;
+}
+
+const PRESETS = [
+  { label: '3 ÷ 2', a: 3, b: 2, desc: 'Classic Hemiola' },
+  { label: '4 ÷ 3', a: 4, b: 3, desc: 'Polyrhythmic standard' },
+  { label: '5 ÷ 2', a: 5, b: 2, desc: 'Balkan / Quintuple' },
+  { label: '5 ÷ 3', a: 5, b: 3, desc: 'Harmonic contrast' },
+  { label: '5 ÷ 4', a: 5, b: 4, desc: 'Metric tension' },
+  { label: '7 ÷ 4', a: 7, b: 4, desc: 'Asymmetric 28-pulse' },
+  { label: '8 ÷ 5', a: 8, b: 5, desc: 'Fibonacci ratio' },
+];
+
+export const UnifiedRhythmControls: React.FC<UnifiedRhythmControlsProps> = ({
+  a,
+  b,
+  c,
+  setA,
+  setB,
+  setC,
+  mode,
+  setMode,
+  metricGrouping,
+  setMetricGrouping,
+  totalLength,
+  bpm,
+  setBpm,
+  variations,
+  setVariations,
+}) => {
+  const handleAChange = (newA: number) => {
+    const validA = Math.max(2, Math.min(16, newA));
+    setA(validA);
+    if (validA <= b && mode !== 'trinomial') {
+      setB(validA - 1);
+    }
+  };
+
+  const handleBChange = (newB: number) => {
+    const validB = Math.max(1, Math.min(a - 1, newB));
+    setB(validB);
+  };
+
+  const handleCChange = (newC: number) => {
+    setC(Math.max(1, Math.min(16, newC)));
+  };
+
+  const handleToggleReverse = () => {
+    setVariations((prev) => ({ ...prev, isReversed: !prev.isReversed }));
+  };
+
+  const handleRotate = (delta: number) => {
+    setVariations((prev) => ({
+      ...prev,
+      rotationOffset: prev.rotationOffset + delta,
+    }));
+  };
+
+  const handleResetVariations = () => {
+    setVariations({ isReversed: false, rotationOffset: 0 });
+  };
+
+  // Distributive Square
+  const distSquareA2 = a * a;
+  const distSquareAB = a * b;
+  const distSquareB2 = b * b;
+  const distSquareFormula = `${distSquareA2} + ${distSquareAB} + ${distSquareAB} + ${distSquareB2}`;
+  const distSquareSum = distSquareA2 + 2 * distSquareAB + distSquareB2;
+
+  return (
+    <div className="bg-white rounded-2xl border-2 border-slate-900 p-5 shadow-sm space-y-4">
+      {/* Top Header Bar: Title, Presets, and Cycle Badge */}
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3 border-b-2 border-slate-100 pb-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2">
+            <Sliders className="w-5 h-5 text-[#c84b31]" />
+            <h2 className="text-base sm:text-lg font-extrabold text-slate-900 uppercase tracking-wider font-mono">
+              Generator Setup &amp; Variations
+            </h2>
+          </div>
+
+          <div className="text-sm font-mono font-extrabold text-slate-900 bg-[#fdf0ec] border-2 border-[#c84b31]/40 px-3.5 py-1 rounded-full">
+            Cycle Length: <span className="text-[#c84b31]">{totalLength}</span> units
+          </div>
+        </div>
+
+        {/* Quick Presets */}
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-500 mr-1 flex items-center gap-1">
+            <Sparkles className="w-3.5 h-3.5 text-[#c84b31]" />
+            Presets:
+          </span>
+          {PRESETS.map((preset) => {
+            const isSelected = a === preset.a && b === preset.b && mode === 'binary';
+            return (
+              <button
+                key={preset.label}
+                onClick={() => {
+                  setA(preset.a);
+                  setB(preset.b);
+                  if (mode === 'trinomial') setMode('binary');
+                }}
+                className={`px-3 py-1.5 rounded-full text-xs sm:text-sm font-mono font-bold transition-all border-2 ${
+                  isSelected
+                    ? 'bg-[#c84b31] border-[#c84b31] text-white shadow-sm'
+                    : 'bg-slate-50 border-slate-300 text-slate-800 hover:border-slate-900'
+                }`}
+              >
+                {preset.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Main Controls Row: Sliders, Model, Grouping & Variations in a clean unified grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-4 items-start">
+        {/* Major Generator (a) */}
+        <div className="lg:col-span-3 p-3.5 rounded-xl bg-slate-50 border-2 border-slate-200 space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-bold font-mono text-sky-700 flex items-center gap-2">
+              <span className="w-3 h-3 rounded-full bg-sky-600 inline-block"></span>
+              Major (a)
+            </span>
+            <span className="text-lg font-extrabold font-mono text-slate-900 bg-white px-2.5 py-0.5 rounded-lg border-2 border-slate-300">
+              {a}
+            </span>
+          </div>
+          <input
+            type="range"
+            min={2}
+            max={12}
+            value={a}
+            onChange={(e) => handleAChange(parseInt(e.target.value))}
+            className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-sky-600"
+          />
+          <div className="text-xs font-mono text-slate-500 font-medium">Period: {a} time units</div>
+        </div>
+
+        {/* Minor Generator (b) */}
+        <div className="lg:col-span-3 p-3.5 rounded-xl bg-slate-50 border-2 border-slate-200 space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-bold font-mono text-rose-700 flex items-center gap-2">
+              <span className="w-3 h-3 rounded-full bg-rose-600 inline-block"></span>
+              Minor (b)
+            </span>
+            <span className="text-lg font-extrabold font-mono text-slate-900 bg-white px-2.5 py-0.5 rounded-lg border-2 border-slate-300">
+              {b}
+            </span>
+          </div>
+          <input
+            type="range"
+            min={1}
+            max={Math.max(1, a - 1)}
+            value={b}
+            onChange={(e) => handleBChange(parseInt(e.target.value))}
+            className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-rose-600"
+          />
+          <div className="text-xs font-mono text-slate-500 font-medium">Period: {b} time units</div>
+        </div>
+
+        {/* Interference Model Picker */}
+        <div className="lg:col-span-3 p-3.5 rounded-xl bg-slate-50 border-2 border-slate-200 space-y-2">
+          <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block font-mono flex items-center gap-1.5">
+            <Split className="w-3.5 h-3.5 text-slate-800" />
+            Interference Model
+          </label>
+          <div className="grid grid-cols-3 gap-1.5">
+            <button
+              onClick={() => setMode('binary')}
+              className={`py-2 px-1 rounded-xl text-center border-2 transition-all ${
+                mode === 'binary'
+                  ? 'bg-slate-900 border-slate-900 text-white shadow-2xs font-bold'
+                  : 'bg-white border-slate-300 text-slate-700 hover:border-slate-800'
+              }`}
+            >
+              <div className="text-xs sm:text-sm font-bold font-mono">a ÷ b</div>
+              <div className="text-[10px] opacity-75">Binary</div>
+            </button>
+
+            <button
+              onClick={() => setMode('fractioned')}
+              className={`py-2 px-1 rounded-xl text-center border-2 transition-all ${
+                mode === 'fractioned'
+                  ? 'bg-slate-900 border-slate-900 text-white shadow-2xs font-bold'
+                  : 'bg-white border-slate-300 text-slate-700 hover:border-slate-800'
+              }`}
+            >
+              <div className="text-xs sm:text-sm font-bold font-mono">a ÷ b̲</div>
+              <div className="text-[10px] opacity-75">Fractioned</div>
+            </button>
+
+            <button
+              onClick={() => setMode('trinomial')}
+              className={`py-2 px-1 rounded-xl text-center border-2 transition-all ${
+                mode === 'trinomial'
+                  ? 'bg-slate-900 border-slate-900 text-white shadow-2xs font-bold'
+                  : 'bg-white border-slate-300 text-slate-700 hover:border-slate-800'
+              }`}
+            >
+              <div className="text-xs sm:text-sm font-bold font-mono">a÷b÷c</div>
+              <div className="text-[10px] opacity-75">3-Part</div>
+            </button>
+          </div>
+        </div>
+
+        {/* Metric Grouping */}
+        <div className="lg:col-span-3 p-3.5 rounded-xl bg-slate-50 border-2 border-slate-200 space-y-2">
+          <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block font-mono flex items-center gap-1.5">
+            <Compass className="w-3.5 h-3.5 text-slate-800" />
+            Metric Grouping
+          </label>
+          <div className="grid grid-cols-3 gap-1.5">
+            <button
+              onClick={() => setMetricGrouping('ab')}
+              className={`py-2 px-1 rounded-xl text-center border-2 transition-all ${
+                metricGrouping === 'ab'
+                  ? 'bg-[#c84b31] border-[#c84b31] text-white shadow-2xs font-bold'
+                  : 'bg-white border-slate-300 text-slate-700 hover:border-slate-800'
+              }`}
+            >
+              <div className="text-xs sm:text-sm font-bold font-mono">by ab</div>
+              <div className="text-[10px] opacity-80">1 bar</div>
+            </button>
+
+            <button
+              onClick={() => setMetricGrouping('a')}
+              className={`py-2 px-1 rounded-xl text-center border-2 transition-all ${
+                metricGrouping === 'a'
+                  ? 'bg-[#c84b31] border-[#c84b31] text-white shadow-2xs font-bold'
+                  : 'bg-white border-slate-300 text-slate-700 hover:border-slate-800'
+              }`}
+            >
+              <div className="text-xs sm:text-sm font-bold font-mono">by a</div>
+              <div className="text-[10px] opacity-80">{b} bars</div>
+            </button>
+
+            <button
+              onClick={() => setMetricGrouping('b')}
+              className={`py-2 px-1 rounded-xl text-center border-2 transition-all ${
+                metricGrouping === 'b'
+                  ? 'bg-[#c84b31] border-[#c84b31] text-white shadow-2xs font-bold'
+                  : 'bg-white border-slate-300 text-slate-700 hover:border-slate-800'
+              }`}
+            >
+              <div className="text-xs sm:text-sm font-bold font-mono">by b</div>
+              <div className="text-[10px] opacity-80">{a} bars</div>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Row 2: Variations (Retrograde, Rotation) and Distributive Powers Strip */}
+      <div className="flex flex-col md:flex-row items-center justify-between gap-3 pt-2 border-t-2 border-slate-100">
+        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+          {/* Retrograde */}
+          <button
+            onClick={handleToggleReverse}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl border-2 text-xs sm:text-sm font-bold font-mono transition-all ${
+              variations.isReversed
+                ? 'bg-[#c84b31] border-[#c84b31] text-white shadow-sm'
+                : 'bg-slate-50 border-slate-300 text-slate-800 hover:border-slate-900'
+            }`}
+          >
+            <ArrowLeftRight className="w-4 h-4" />
+            <span>Retrograde (Reverse): {variations.isReversed ? 'ON' : 'OFF'}</span>
+          </button>
+
+          {/* Circular Permutation */}
+          <div className="flex items-center gap-2 bg-slate-50 border-2 border-slate-300 px-3 py-1.5 rounded-xl">
+            <span className="text-xs sm:text-sm font-bold font-mono text-slate-900">
+              Shift: <span className="text-[#c84b31] font-bold">{variations.rotationOffset}</span>
+            </span>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => handleRotate(-1)}
+                className="w-7 h-7 rounded-lg bg-white border border-slate-300 text-xs font-bold hover:border-slate-900 active:scale-95 flex items-center justify-center shadow-2xs"
+              >
+                ◀
+              </button>
+              <button
+                onClick={() => handleRotate(1)}
+                className="w-7 h-7 rounded-lg bg-white border border-slate-300 text-xs font-bold hover:border-slate-900 active:scale-95 flex items-center justify-center shadow-2xs"
+              >
+                ▶
+              </button>
+            </div>
+            {variations.rotationOffset !== 0 && (
+              <button
+                onClick={handleResetVariations}
+                className="text-xs font-mono font-bold text-[#c84b31] ml-1 hover:underline flex items-center gap-0.5"
+              >
+                <RefreshCw className="w-3 h-3" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Distributive Square Compact Badge */}
+        <div className="bg-[#fdf0ec] border-2 border-[#c84b31]/30 px-3.5 py-1.5 rounded-xl flex items-center gap-2 text-xs sm:text-sm font-mono text-slate-900">
+          <Cpu className="w-4 h-4 text-[#c84b31]" />
+          <span>({a} + {b})² = <strong>{distSquareSum}</strong> → [{distSquareFormula}]</span>
+        </div>
+      </div>
+    </div>
+  );
+};

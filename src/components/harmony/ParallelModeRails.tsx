@@ -4,7 +4,7 @@ import {
   ScaleDefinition,
   PARENT_SCALES,
 } from '../../core/harmony/engine';
-import { Layers, ArrowRight, Volume2 } from 'lucide-react';
+import { Layers } from 'lucide-react';
 
 interface ParallelModeRailsProps {
   activeRails: ScaleDefinition[];
@@ -29,27 +29,27 @@ export const ParallelModeRails: React.FC<ParallelModeRailsProps> = ({
         setActiveRails(activeRails.filter((s) => s.id !== scale.id));
       }
     } else {
-      if (activeRails.length < 4) {
+      if (activeRails.length < 5) {
         setActiveRails([...activeRails, scale]);
       }
     }
   };
 
   return (
-    <div className="bg-white rounded-2xl border-2 border-slate-900 p-5 shadow-sm space-y-5">
-      {/* Header & Scale Pickers */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-4">
+    <div className="bg-white rounded-2xl border-2 border-slate-900 p-5 sm:p-6 shadow-sm space-y-5">
+      {/* Header & Rail Filter */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b-2 border-slate-100 pb-4">
         <div>
-          <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-            <Layers className="w-4 h-4 text-[#c84b31]" />
+          <h3 className="text-base sm:text-lg font-extrabold text-slate-900 flex items-center gap-2 font-mono uppercase tracking-tight">
+            <Layers className="w-5 h-5 text-[#c84b31]" />
             Parallel Mode Rails
           </h3>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Compare how the exact same cyclic root moves project across different parent scales. Click any chord to audition or swap into Master.
+          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+            Same cyclic root movements projected through each parent scale. Click any chord to hear it or send to Master.
           </p>
         </div>
 
-        {/* Rail Toggle Pills */}
+        {/* Scale Toggle Pills */}
         <div className="flex flex-wrap items-center gap-1.5">
           {PARENT_SCALES.slice(0, 7).map((scale) => {
             const isLoaded = activeRails.some((s) => s.id === scale.id);
@@ -57,10 +57,10 @@ export const ParallelModeRails: React.FC<ParallelModeRailsProps> = ({
               <button
                 key={scale.id}
                 onClick={() => toggleScaleInRail(scale)}
-                className={`px-2.5 py-1 rounded-full text-xs font-bold font-mono transition-all border ${
+                className={`px-3 py-1.5 rounded-full text-xs sm:text-sm font-bold font-mono transition-all border-2 ${
                   isLoaded
-                    ? 'bg-slate-900 border-slate-900 text-white shadow-2xs'
-                    : 'bg-slate-50 border-slate-300 text-slate-600 hover:border-slate-800'
+                    ? 'bg-slate-900 border-slate-900 text-white shadow-sm'
+                    : 'bg-slate-50 border-slate-300 text-slate-700 hover:border-slate-800'
                 }`}
               >
                 {scale.name.split(' ')[0]}
@@ -78,24 +78,40 @@ export const ParallelModeRails: React.FC<ParallelModeRailsProps> = ({
           return (
             <div
               key={scale.id}
-              className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-2.5"
+              className="border-2 border-slate-900 rounded-2xl p-4 space-y-3 shadow-2xs"
+              style={{
+                backgroundColor:
+                  scale.id === 'ionian'
+                    ? '#fdf0ec' // Soft peach
+                    : scale.id === 'phrygian'
+                    ? '#fef3c7' // Soft amber
+                    : scale.id === 'dorian'
+                    ? '#e0f2fe' // Soft blue
+                    : scale.id === 'lydian'
+                    ? '#d1fae5' // Soft green
+                    : scale.id === 'mixolydian'
+                    ? '#ede9fe' // Soft violet
+                    : scale.id === 'aeolian'
+                    ? '#ffe4e6' // Soft rose
+                    : '#f1f5f9', // Soft slate
+              }}
             >
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold font-mono uppercase tracking-wider text-slate-800 flex items-center gap-2">
+              <div className="flex items-center justify-between border-b border-slate-900/10 pb-2">
+                <span className="text-sm sm:text-base font-extrabold font-mono uppercase tracking-wider text-slate-900 flex items-center gap-2">
                   <span
-                    className="w-2.5 h-2.5 rounded-full inline-block"
+                    className="w-3.5 h-3.5 rounded-full inline-block border border-slate-900"
                     style={{ backgroundColor: scale.color }}
                   ></span>
                   {scale.name} Version
                 </span>
-                <span className="text-[11px] font-mono text-slate-400">
-                  {scale.intervals.length} tones
+                <span className="text-xs font-mono font-bold text-slate-600 bg-white/70 px-2 py-0.5 rounded-md border border-slate-300">
+                  {scale.intervals.length} Scale Degrees
                 </span>
               </div>
 
               {/* Horizontal Scrollable Chords Sequence */}
               <div
-                className="overflow-x-auto w-full py-1.5 flex items-center gap-2 select-none"
+                className="overflow-x-auto w-full py-2 flex items-center gap-3 select-none"
                 style={{ WebkitOverflowScrolling: 'touch' }}
               >
                 {chords.map((chord, stepIdx) => {
@@ -114,36 +130,36 @@ export const ParallelModeRails: React.FC<ParallelModeRailsProps> = ({
                         onDoubleClick={() => {
                           onSwapIntoMaster(chord, stepIdx);
                         }}
-                        className={`w-20 sm:w-24 py-2.5 px-2 rounded-xl text-xs font-bold font-mono transition-all text-center border-2 relative shadow-2xs active:scale-95 ${
+                        className={`w-24 sm:w-28 py-3.5 px-2 rounded-2xl font-bold font-mono transition-all text-center border-2 relative shadow-sm active:scale-95 ${
                           isCurrent
-                            ? 'bg-[#c84b31] border-[#c84b31] text-white shadow-md scale-105'
+                            ? 'bg-slate-900 border-slate-900 text-white scale-105 shadow-md'
                             : isFirstInCycle
-                            ? 'bg-[#fdf0ec] border-[#c84b31] text-[#c84b31] hover:bg-[#c84b31] hover:text-white'
+                            ? 'bg-white border-[#c84b31] text-[#c84b31] hover:bg-[#c84b31] hover:text-white'
                             : 'bg-white border-slate-900 text-slate-900 hover:bg-slate-900 hover:text-white'
                         }`}
                         title="Click to preview • Double-click to swap into Master"
                       >
-                        <div className="text-xs sm:text-sm font-bold tracking-tight">
+                        <div className="text-base sm:text-lg font-extrabold tracking-tight">
                           {chord.chordName}
                         </div>
-                        <div className="text-[10px] opacity-75 font-sans mt-0.5">
+                        <div className="text-xs sm:text-sm opacity-80 font-mono mt-0.5 font-bold">
                           {chord.romanNumeral}
                         </div>
 
-                        {/* Quick Swap Badge on hover */}
+                        {/* Quick Swap Badge */}
                         <div
                           onClick={(e) => {
                             e.stopPropagation();
                             onSwapIntoMaster(chord, stepIdx);
                           }}
-                          className="hidden group-hover:flex absolute -top-2 -right-1 bg-slate-900 text-white rounded-full w-4 h-4 items-center justify-center text-[9px] font-bold shadow hover:bg-[#c84b31]"
+                          className="hidden group-hover:flex absolute -top-2 -right-1 bg-slate-900 text-white rounded-full w-5 h-5 items-center justify-center text-[10px] font-bold shadow hover:bg-[#c84b31] border border-white"
                           title="Apply to Master Lane"
                         >
                           ↓
                         </div>
                       </button>
 
-                      <span className="text-[10px] font-mono text-slate-400 mt-1">
+                      <span className="text-xs font-mono font-bold text-slate-500 mt-1">
                         #{stepIdx + 1}
                       </span>
                     </div>

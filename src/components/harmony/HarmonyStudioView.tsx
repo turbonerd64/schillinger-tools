@@ -10,19 +10,32 @@ import {
   applyGreedyVoiceLeading,
 } from '../../core/harmony/engine';
 import { FormulaBar } from './FormulaBar';
-import { ParallelModeRails } from './ParallelModeRails';
 import { MasterProgressionLane } from './MasterProgressionLane';
+import { ParallelModeRails } from './ParallelModeRails';
 import { InteractivePiano } from './InteractivePiano';
 import { InteractiveFretboard } from './InteractiveFretboard';
 import { HarmonyExportPanel } from './HarmonyExportPanel';
 import { audioService } from '../../core/audio/synth';
 
-export const HarmonyStudioView: React.FC = () => {
+interface HarmonyStudioViewProps {
+  isPlaying: boolean;
+  setIsPlaying: (playing: boolean) => void;
+  selectedChordIndex: number;
+  setSelectedChordIndex: React.Dispatch<React.SetStateAction<number>>;
+  onChordCountUpdate?: (count: number) => void;
+}
+
+export const HarmonyStudioView: React.FC<HarmonyStudioViewProps> = ({
+  isPlaying,
+  setIsPlaying,
+  selectedChordIndex,
+  setSelectedChordIndex,
+  onChordCountUpdate,
+}) => {
   const [tonicRoot, setTonicRoot] = useState<number>(0); // C
   const [structure, setStructure] = useState<ChordStructureType>('S7');
   const [totalChordsCount, setTotalChordsCount] = useState<number>(8);
   const [bpm, setBpm] = useState<number>(90);
-  const [masterVolume, setMasterVolume] = useState<number>(0.85);
 
   // Active cyclic formula moves
   const [formula, setFormula] = useState<CycleMove[]>([
@@ -32,7 +45,7 @@ export const HarmonyStudioView: React.FC = () => {
     CYCLE_MOVES.find((m) => m.id === 'c3_down')!,
   ]);
 
-  // Active parallel rails (Ionian + Phrygian by default, matching screenshot 1!)
+  // Active parallel rails
   const [activeRails, setActiveRails] = useState<ScaleDefinition[]>([
     PARENT_SCALES.find((s) => s.id === 'ionian')!,
     PARENT_SCALES.find((s) => s.id === 'phrygian')!,
@@ -48,7 +61,7 @@ export const HarmonyStudioView: React.FC = () => {
     return map;
   }, [tonicRoot, formula, structure, totalChordsCount]);
 
-  // Master progression (starts as clone of first active rail)
+  // Master progression
   const [masterChords, setMasterChords] = useState<ChordItem[]>([]);
 
   // Update master chords when parameters change
@@ -56,13 +69,12 @@ export const HarmonyStudioView: React.FC = () => {
     const baseRailId = activeRails[0]?.id || 'ionian';
     const baseChords = railChordsMap[baseRailId] || [];
     setMasterChords(baseChords);
+    if (onChordCountUpdate) {
+      onChordCountUpdate(baseChords.length);
+    }
   }, [railChordsMap, activeRails]);
 
-  // Selected chord for visualizers & playback
-  const [selectedChordIndex, setSelectedChordIndex] = useState<number>(0);
-  const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const playTimerRef = useRef<number | null>(null);
-
   const currentChord = masterChords[selectedChordIndex] || masterChords[0];
 
   const handleSelectChord = (chord: ChordItem, stepIdx: number) => {
@@ -79,7 +91,6 @@ export const HarmonyStudioView: React.FC = () => {
       stepIndex: stepIdx,
       isCustomBorrowed: true,
     };
-    // Re-apply voice leading so the swap connects smoothly
     const reVoiced = applyGreedyVoiceLeading(updated);
     setMasterChords(reVoiced);
     setSelectedChordIndex(stepIdx);
@@ -107,7 +118,7 @@ export const HarmonyStudioView: React.FC = () => {
   // Progression playback loop
   useEffect(() => {
     if (isPlaying) {
-      const intervalMs = (60 / bpm) * 1000 * 2; // 2 beats per chord
+      const intervalMs = (60 / bpm) * 1000 * 2;
       playTimerRef.current = window.setInterval(() => {
         setSelectedChordIndex((prev) => {
           const next = (prev + 1) % masterChords.length;
@@ -119,7 +130,6 @@ export const HarmonyStudioView: React.FC = () => {
         });
       }, intervalMs);
 
-      // Play current immediately on start
       if (currentChord && currentChord.voicedMidiNotes) {
         audioService.playVoicedChord(currentChord.voicedMidiNotes, (intervalMs / 1000) * 0.9);
       }
@@ -137,35 +147,9 @@ export const HarmonyStudioView: React.FC = () => {
     };
   }, [isPlaying, bpm, masterChords]);
 
-  const handlePlay = () => setIsPlaying(true);
-  const handlePause = () => setIsPlaying(false);
-  const handleReset = () => {
-    setIsPlaying(false);
-    setSelectedChordIndex(0);
-    if (masterChords[0]?.voicedMidiNotes) {
-      audioService.playVoicedChord(masterChords[0].voicedMidiNotes, 0.8);
-    }
-  };
-
-  const handleStepForward = () => {
-    const next = (selectedChordIndex + 1) % masterChords.length;
-    setSelectedChordIndex(next);
-    if (masterChords[next]?.voicedMidiNotes) {
-      audioService.playVoicedChord(masterChords[next].voicedMidiNotes, 0.8);
-    }
-  };
-
-  const handleStepBack = () => {
-    const prev = (selectedChordIndex - 1 + masterChords.length) % masterChords.length;
-    setSelectedChordIndex(prev);
-    if (masterChords[prev]?.voicedMidiNotes) {
-      audioService.playVoicedChord(masterChords[prev].voicedMidiNotes, 0.8);
-    }
-  };
-
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
-      {/* Top Configuration & Formula Bar */}
+      {/* 1. Top Setup: Formula & Key */}
       <FormulaBar
         tonicRoot={tonicRoot}
         setTonicRoot={setTonicRoot}
@@ -174,33 +158,15 @@ export const HarmonyStudioView: React.FC = () => {
         structure={structure}
         setStructure={setStructure}
         totalChordsCount={totalChordsCount}
-        setTotalChordsCount={setTotalChordsCount}
-        isPlaying={isPlaying}
-        onPlay={handlePlay}
-        onPause={handlePause}
-        onReset={handleReset}
-        onStepForward={handleStepForward}
-        onStepBack={handleStepBack}
+        setTotalChordsCount={(count) => {
+          setTotalChordsCount(count);
+          if (onChordCountUpdate) onChordCountUpdate(count);
+        }}
         bpm={bpm}
         setBpm={setBpm}
-        masterVolume={masterVolume}
-        setMasterVolume={(vol) => {
-          setMasterVolume(vol);
-          audioService.setMasterVolume(vol);
-        }}
       />
 
-      {/* Parallel Mode Rails */}
-      <ParallelModeRails
-        activeRails={activeRails}
-        setActiveRails={setActiveRails}
-        railChordsMap={railChordsMap}
-        activeChordIndex={selectedChordIndex}
-        onSelectChord={handleSelectChord}
-        onSwapIntoMaster={(chord, stepIdx) => handleSwapChord(stepIdx, chord)}
-      />
-
-      {/* Master Progression Lane */}
+      {/* 2. MASTER PROGRESSION LANE FIRST (Above Parallel Rails) */}
       <MasterProgressionLane
         masterChords={masterChords}
         activeChordIndex={selectedChordIndex}
@@ -211,7 +177,17 @@ export const HarmonyStudioView: React.FC = () => {
         onSwapChord={handleSwapChord}
       />
 
-      {/* Visualizers: Piano & Guitar Fretboard */}
+      {/* 3. PARALLEL MODE RAILS (For comparative reference & chord borrowing) */}
+      <ParallelModeRails
+        activeRails={activeRails}
+        setActiveRails={setActiveRails}
+        railChordsMap={railChordsMap}
+        activeChordIndex={selectedChordIndex}
+        onSelectChord={handleSelectChord}
+        onSwapIntoMaster={(chord, stepIdx) => handleSwapChord(stepIdx, chord)}
+      />
+
+      {/* 4. Visualizers: Piano & Guitar Fretboard */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <InteractivePiano
           activeMidiNotes={currentChord?.voicedMidiNotes || []}
@@ -224,7 +200,7 @@ export const HarmonyStudioView: React.FC = () => {
         />
       </div>
 
-      {/* Export Panel */}
+      {/* 5. Export Panel */}
       <HarmonyExportPanel chords={masterChords} bpm={bpm} />
     </div>
   );
