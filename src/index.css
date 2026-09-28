@@ -24,19 +24,28 @@ body {
   flex-direction: column;
 }
 
-/* Crisp minimal scrollbars */
+/* Crisp, prominent signature terracotta/orange scrollbars */
+* {
+  scrollbar-color: #c84b31 #fdf0ec;
+  scrollbar-width: thin;
+}
+
 ::-webkit-scrollbar {
-  height: 6px;
-  width: 6px;
+  height: 9px;
+  width: 9px;
 }
 ::-webkit-scrollbar-track {
-  background: #f1f5f9;
-  border-radius: 4px;
+  background: #fdf0ec;
+  border-radius: 6px;
 }
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 4px;
+  background: #c84b31;
+  border-radius: 6px;
+  border: 1px solid #fdf0ec;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #a33822;
+}
+::-webkit-scrollbar-thumb:active {
+  background: #7e2a18;
 }
