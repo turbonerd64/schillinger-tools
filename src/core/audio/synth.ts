@@ -11,15 +11,21 @@ export type PlayheadCallback = (currentTick: number, progressRatio: number) => v
 
 class SchillingerAudioEngine {
   private ctx: AudioContext | null = null;
+  private masterGainNode: GainNode | null = null;
   private isPlaying: boolean = false;
   private timerId: number | null = null;
   private bpm: number = 120;
+  private masterVolume: number = 0.85;
   private currentTick: number = 0;
   private totalTicks: number = 12;
   private nextTickTime: number = 0;
   private lookaheadMs: number = 25;
   private scheduleAheadSec: number = 0.1;
   private onPlayheadUpdate: PlayheadCallback | null = null;
+
+  // Harmony progression state
+  private harmonyTimerId: number | null = null;
+  private isHarmonyPlaying: boolean = false;
 
   // Track channels configuration
   public channels: Record<'a' | 'b' | 'c' | 'resultant', TrackMixerChannel> = {
@@ -29,21 +35,32 @@ class SchillingerAudioEngine {
     resultant: { id: 'resultant', name: 'Resultant r', muted: false, solo: false, volume: 0.95, frequency: 1200 },
   };
 
-  // Scheduled events map by tick index: tick -> Array of channel triggers
   private eventTimeline: Map<number, Array<{ channel: 'a' | 'b' | 'c' | 'resultant'; isAccented: boolean }>> = new Map();
 
-  constructor() {
-    // Lazy AudioContext initialization on first user interaction
-  }
+  constructor() {}
 
   private initContext() {
     if (!this.ctx) {
       const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       this.ctx = new AudioCtx();
+      this.masterGainNode = this.ctx.createGain();
+      this.masterGainNode.gain.setValueAtTime(this.masterVolume, this.ctx.currentTime);
+      this.masterGainNode.connect(this.ctx.destination);
     }
     if (this.ctx.state === 'suspended') {
       this.ctx.resume();
     }
+  }
+
+  public setMasterVolume(vol: number) {
+    this.masterVolume = Math.max(0, Math.min(1, vol));
+    if (this.ctx && this.masterGainNode) {
+      this.masterGainNode.gain.setValueAtTime(this.masterVolume, this.ctx.currentTime);
+    }
+  }
+
+  public getMasterVolume(): number {
+    return this.masterVolume;
   }
 
   public setBpm(newBpm: number) {
@@ -58,9 +75,6 @@ class SchillingerAudioEngine {
     this.onPlayheadUpdate = cb;
   }
 
-  /**
-   * Loads the sequence into the playback timeline
-   */
   public loadSequence(
     totalTicks: number,
     events: Array<{ tick: number; channel: 'a' | 'b' | 'c' | 'resultant'; isAccented: boolean }>
@@ -77,19 +91,17 @@ class SchillingerAudioEngine {
 
   /**
    * Acoustic Percussion Synthesizer
-   * Produces a warm, organic woodblock / clave / click transient
    */
   private triggerPercussion(
     channelId: 'a' | 'b' | 'c' | 'resultant',
     time: number,
     isAccented: boolean
   ) {
-    if (!this.ctx) return;
+    if (!this.ctx || !this.masterGainNode) return;
 
     const ch = this.channels[channelId];
     if (!ch) return;
 
-    // Solo logic: If any channel is soloed, play ONLY soloed channels
     const hasAnySolo = Object.values(this.channels).some((c) => c.solo);
     if (hasAnySolo && !ch.solo) return;
     if (!hasAnySolo && ch.muted) return;
@@ -101,23 +113,19 @@ class SchillingerAudioEngine {
     const gainNode = this.ctx.createGain();
     const filter = this.ctx.createBiquadFilter();
 
-    // Woodblock body resonance
     filter.type = 'bandpass';
     filter.Q.value = channelId === 'resultant' ? 6.0 : 4.0;
     const baseFreq = ch.frequency;
     filter.frequency.setValueAtTime(baseFreq, time);
 
-    // Subtle pitch dip for resonant percussion thud
     osc.type = channelId === 'resultant' ? 'triangle' : 'sine';
     osc.frequency.setValueAtTime(baseFreq * (isAccented ? 1.6 : 1.4), time);
     osc.frequency.exponentialRampToValueAtTime(baseFreq, time + 0.025);
 
-    // Fast exponential decay envelope
     const decayDuration = channelId === 'resultant' ? 0.08 : 0.12;
     gainNode.gain.setValueAtTime(finalGain, time);
     gainNode.gain.exponentialRampToValueAtTime(0.0001, time + decayDuration);
 
-    // Subtle transient click / noise crackle
     const clickOsc = this.ctx.createOscillator();
     const clickGain = this.ctx.createGain();
     clickOsc.type = 'square';
@@ -128,10 +136,10 @@ class SchillingerAudioEngine {
     clickOsc.connect(filter);
     osc.connect(gainNode);
     gainNode.connect(filter);
-    filter.connect(this.ctx.destination);
+    filter.connect(this.masterGainNode);
 
     clickOsc.connect(clickGain);
-    clickGain.connect(this.ctx.destination);
+    clickGain.connect(this.masterGainNode);
 
     osc.start(time);
     clickOsc.start(time);
@@ -140,14 +148,50 @@ class SchillingerAudioEngine {
   }
 
   /**
-   * Main scheduler loop using Web Audio lookahead
+   * Polyphonic Voice Synthesizer for Chords
+   * Generates warm electric piano / organ chord timbre
    */
+  public playVoicedChord(midiNotes: number[], durationSec: number = 0.9, startTime?: number) {
+    this.initContext();
+    if (!this.ctx || !this.masterGainNode) return;
+
+    const start = startTime ?? this.ctx.currentTime;
+    const noteGainAmount = 0.5 / Math.sqrt(Math.max(1, midiNotes.length));
+
+    midiNotes.forEach((midi, voiceIndex) => {
+      if (!this.ctx || !this.masterGainNode) return;
+      const freq = 440 * Math.pow(2, (midi - 69) / 12);
+
+      const osc = this.ctx.createOscillator();
+      const gainNode = this.ctx.createGain();
+      const filter = this.ctx.createBiquadFilter();
+
+      // Warmer body filter
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(voiceIndex === 0 ? 800 : 2600, start);
+
+      // Timbre: triangle + soft sine
+      osc.type = voiceIndex === 0 ? 'sine' : 'triangle';
+      osc.frequency.setValueAtTime(freq, start);
+
+      // Envelope: gentle attack 0.04s, sustained decay, smooth release
+      gainNode.gain.setValueAtTime(0.0001, start);
+      gainNode.gain.linearRampToValueAtTime(noteGainAmount, start + 0.04);
+      gainNode.gain.exponentialRampToValueAtTime(noteGainAmount * 0.7, start + durationSec * 0.6);
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, start + durationSec);
+
+      osc.connect(filter);
+      filter.connect(gainNode);
+      gainNode.connect(this.masterGainNode);
+
+      osc.start(start);
+      osc.stop(start + durationSec + 0.05);
+    });
+  }
+
   private schedule() {
     if (!this.ctx || !this.isPlaying) return;
 
-    // Time per single atomic pulse 't' in seconds
-    // Assume 1 beat = quarter note = 4 time units (16th notes) by default
-    // seconds per unit t = (60 / bpm) / 4
     const secondsPerUnit = 60 / this.bpm / 4;
 
     while (this.nextTickTime < this.ctx.currentTime + this.scheduleAheadSec) {
@@ -160,7 +204,6 @@ class SchillingerAudioEngine {
         }
       }
 
-      // Schedule visual update
       const targetTime = this.nextTickTime;
       const currentTickValue = tick;
       const total = this.totalTicks;
@@ -172,7 +215,6 @@ class SchillingerAudioEngine {
         }
       }, delayMs);
 
-      // Advance clock
       this.nextTickTime += secondsPerUnit;
       this.currentTick = (this.currentTick + 1) % this.totalTicks;
     }

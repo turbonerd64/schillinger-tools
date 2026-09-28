@@ -39,7 +39,7 @@ export const DataExportPanel: React.FC<DataExportPanelProps> = ({
     }));
 
     const filename = `schillinger_${resultant.mode}_${resultant.generators.a}_${resultant.generators.b}`;
-    downloadMidiFile(notes, filename, bpm, `Schillinger ${resultant.mode}`);
+    downloadMidiFile(notes, filename, bpm, `Schillinger Resultant`);
 
     setDownloadSuccess('MIDI File Downloaded');
     setTimeout(() => setDownloadSuccess(null), 2500);
@@ -55,59 +55,56 @@ export const DataExportPanel: React.FC<DataExportPanelProps> = ({
   };
 
   return (
-    <div className="bg-schillinger-card rounded-2xl border border-schillinger-border p-5 shadow-xl space-y-5">
+    <div className="bg-white rounded-2xl border-2 border-slate-900 p-5 shadow-sm space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-schillinger-border/60 pb-3">
+      <div className="flex items-center justify-between border-b border-slate-200 pb-3">
         <div className="flex items-center gap-2">
-          <FileText className="w-4 h-4 text-schillinger-resultant" />
-          <h2 className="text-sm font-semibold text-white uppercase tracking-wider">
+          <FileText className="w-4 h-4 text-[#c84b31]" />
+          <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
             Pattern Data & Export
           </h2>
         </div>
         {downloadSuccess && (
-          <span className="text-xs font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 flex items-center gap-1 animate-pulse">
-            <Check className="w-3 h-3" /> {downloadSuccess}
+          <span className="text-xs font-mono font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-300 flex items-center gap-1">
+            <Check className="w-3.5 h-3.5" /> {downloadSuccess}
           </span>
         )}
       </div>
 
       {/* Formatted Equation Display */}
-      <div className="bg-schillinger-panel/90 border border-schillinger-border rounded-xl p-4 space-y-2">
-        <div className="flex items-center justify-between text-xs text-schillinger-textMuted font-mono">
-          <span>Resultant Formula (Book I)</span>
-          <span>Sum: {resultant.totalLength} units</span>
+      <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-1.5">
+        <div className="flex items-center justify-between text-xs text-slate-500 font-mono">
+          <span>Resultant Formula</span>
+          <span>Total Cycle: <strong>{resultant.totalLength}</strong> units</span>
         </div>
-        <div className="text-sm sm:text-base font-mono font-bold text-schillinger-resultant break-all leading-relaxed bg-schillinger-bg/80 p-3 rounded-lg border border-schillinger-border/70 select-all">
+        <div className="text-base sm:text-lg font-mono font-extrabold text-slate-900 break-all bg-white p-3 rounded-lg border-2 border-slate-300 select-all">
           r = {durationString}
         </div>
       </div>
 
       {/* Action Buttons */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        {/* Copy Array */}
         <button
           onClick={handleCopyArray}
-          className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-schillinger-panel border border-schillinger-border hover:border-gray-500 hover:text-white text-gray-300 text-xs font-mono transition-all active:scale-95 shadow-sm"
+          className="flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border-2 border-slate-900 bg-white hover:bg-slate-100 text-slate-900 text-xs font-bold transition-all shadow-2xs active:scale-95"
         >
-          {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4 text-schillinger-accentA" />}
+          {copied ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
           <span>{copied ? 'Copied Array!' : 'Copy Array'}</span>
         </button>
 
-        {/* Export MIDI */}
         <button
           onClick={handleExportMidi}
-          className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-schillinger-accentA/20 to-schillinger-resultant/20 border border-schillinger-accentA/40 hover:border-schillinger-accentA text-white text-xs font-mono font-bold transition-all active:scale-95 shadow-sm"
+          className="flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border-2 border-[#c84b31] bg-[#fdf0ec] text-[#c84b31] hover:bg-[#c84b31] hover:text-white text-xs font-bold transition-all shadow-2xs active:scale-95"
         >
-          <Music className="w-4 h-4 text-schillinger-accentA" />
+          <Music className="w-4 h-4" />
           <span>Export MIDI (.mid)</span>
         </button>
 
-        {/* Export JSON */}
         <button
           onClick={handleExportJson}
-          className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-schillinger-panel border border-schillinger-border hover:border-gray-500 hover:text-white text-gray-300 text-xs font-mono transition-all active:scale-95 shadow-sm"
+          className="flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border-2 border-slate-900 bg-white hover:bg-slate-100 text-slate-900 text-xs font-bold transition-all shadow-2xs active:scale-95"
         >
-          <Code className="w-4 h-4 text-schillinger-accentB" />
+          <Code className="w-4 h-4" />
           <span>Save Preset (.json)</span>
         </button>
       </div>

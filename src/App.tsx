@@ -2,10 +2,10 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Header } from './components/common/Header';
 import { GeneratorControls } from './components/rhythm/GeneratorControls';
 import { MultiLaneVisualizer } from './components/rhythm/MultiLaneVisualizer';
-import { TransportMixer } from './components/rhythm/TransportMixer';
 import { VariationsPanel } from './components/rhythm/VariationsPanel';
+import { VolumeMixer } from './components/rhythm/VolumeMixer';
 import { DataExportPanel } from './components/rhythm/DataExportPanel';
-import { HarmonyCyclesPreview } from './components/future/HarmonyCyclesPreview';
+import { HarmonyStudioView } from './components/harmony/HarmonyStudioView';
 import { TheoryPrimer } from './components/theory/TheoryPrimer';
 
 import {
@@ -127,34 +127,26 @@ export function App() {
   };
 
   return (
-    <div className="min-h-screen bg-schillinger-bg text-slate-100 flex flex-col font-sans selection:bg-schillinger-accentA/20 selection:text-schillinger-accentA">
-      {/* Universal Suite Header */}
-      <Header activeTab={activeTab} setActiveTab={setActiveTab} />
+    <div className="min-h-screen bg-[#fcfcfd] text-slate-900 flex flex-col font-sans selection:bg-[#fdf0ec] selection:text-[#c84b31]">
+      {/* Sticky Top Header with Global Transport */}
+      <Header
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        isPlayingRhythm={isPlaying}
+        onPlayRhythm={handlePlay}
+        onPauseRhythm={handlePause}
+        onStopRhythm={handleStop}
+        rhythmActiveTick={activeTick}
+        rhythmTotalLength={resultant.totalLength}
+      />
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {activeTab === 'rhythm' && (
           <div className="space-y-6">
-            {/* Top Row: Visualizer & Transport */}
-            <MultiLaneVisualizer
-              resultant={resultant}
-              playheadProgress={playheadProgress}
-              activeTick={activeTick}
-            />
-
-            <TransportMixer
-              isPlaying={isPlaying}
-              onPlay={handlePlay}
-              onPause={handlePause}
-              onStop={handleStop}
-              bpm={bpm}
-              setBpm={setBpm}
-              is3Part={mode === 'trinomial'}
-            />
-
-            {/* Bottom Grid: Controls, Variations, Export */}
+            {/* Controls Row: Generator Parameters & Variations ABOVE Visualizer */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-              <div className="lg:col-span-5 space-y-6">
+              <div className="lg:col-span-6">
                 <GeneratorControls
                   a={a}
                   b={b}
@@ -167,17 +159,34 @@ export function App() {
                   metricGrouping={metricGrouping}
                   setMetricGrouping={setMetricGrouping}
                   totalLength={resultant.totalLength}
+                  bpm={bpm}
+                  setBpm={setBpm}
                 />
               </div>
 
-              <div className="lg:col-span-7 space-y-6">
+              <div className="lg:col-span-6">
                 <VariationsPanel
                   resultant={resultant}
                   variations={variations}
                   setVariations={setVariations}
-                  displayedDurations={displayedDurations}
                 />
+              </div>
+            </div>
 
+            {/* Centered Multi-Lane Comparative Visualizer */}
+            <MultiLaneVisualizer
+              resultant={resultant}
+              playheadProgress={playheadProgress}
+              activeTick={activeTick}
+            />
+
+            {/* Bottom Row: Track Volumes + Data & MIDI Export */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              <div className="lg:col-span-5">
+                <VolumeMixer is3Part={mode === 'trinomial'} />
+              </div>
+
+              <div className="lg:col-span-7">
                 <DataExportPanel
                   resultant={resultant}
                   variations={variations}
@@ -190,19 +199,19 @@ export function App() {
           </div>
         )}
 
-        {activeTab === 'harmony' && <HarmonyCyclesPreview />}
+        {activeTab === 'harmony' && <HarmonyStudioView />}
 
         {activeTab === 'theory' && <TheoryPrimer />}
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-schillinger-border/60 py-4 mt-8 bg-schillinger-panel/40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between text-xs text-schillinger-textMuted font-mono gap-2">
+      {/* Clean Footer */}
+      <footer className="border-t border-slate-200 py-4 mt-8 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 font-mono gap-2">
           <div>
-            Schillinger Rhythm Engine &bull; Based on <em>Book I: Theory of Rhythm</em>
+            Schillinger Tools Studio &bull; Rhythm Resultants &amp; Harmony Cycles
           </div>
           <div>
-            Modular Agential Suite &bull; Ready for Book II & Book V Integration
+            Pure Discrete Math &bull; Zero External Theory Libraries
           </div>
         </div>
       </footer>

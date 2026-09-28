@@ -8,24 +8,28 @@ export default {
   theme: {
     extend: {
       colors: {
-        schillinger: {
-          bg: '#090b10',
-          panel: '#10141d',
-          card: '#161b26',
-          border: '#242d3d',
-          borderLight: '#323f54',
-          accentA: '#00e5ff',     // Major Generator (Cyan)
-          accentB: '#ff5376',     // Minor Generator (Coral / Rose)
-          accentC: '#b388ff',     // 3rd Generator (Purple)
-          resultant: '#ffb300',   // Resultant r (Amber / Gold)
-          counter: '#00e676',     // Countertheme r' (Emerald)
-          grid: '#1f2736',
-          textMuted: '#8b9bb4',
+        studio: {
+          bg: '#fcfcfd',
+          surface: '#ffffff',
+          card: '#ffffff',
+          panel: '#f8f9fa',
+          border: '#e4e7ec',
+          darkBorder: '#1e293b',
+          text: '#0f172a',
+          textMuted: '#64748b',
+          terracotta: '#c84b31',
+          terracottaLight: '#fdf0ec',
+          pillDark: '#18181b',
+          accentA: '#0284c7',   // Clean Blue/Cyan
+          accentB: '#e11d48',   // Crisp Rose/Coral
+          accentC: '#7c3aed',   // Crisp Violet
+          resultant: '#d97706', // Warm Amber
+          success: '#16a34a',
         }
       },
       fontFamily: {
-        mono: ['JetBrains Mono', 'Fira Code', 'monospace'],
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        mono: ['JetBrains Mono', 'SF Mono', 'Menlo', 'monospace'],
+        sans: ['Plus Jakarta Sans', 'Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
       }
     },
   },

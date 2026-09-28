@@ -1,6 +1,6 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { ResultantOutput, DurationBlock } from '../../core/rhythm/types';
-import { Eye, Info, Volume2 } from 'lucide-react';
+import { Eye, Info } from 'lucide-react';
 
 interface MultiLaneVisualizerProps {
   resultant: ResultantOutput;
@@ -16,62 +16,73 @@ export const MultiLaneVisualizer: React.FC<MultiLaneVisualizerProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const [hoveredBlock, setHoveredBlock] = useState<DurationBlock | null>(null);
 
+  // Track previous progress to disable transition when looping back to 0
+  const prevProgressRef = useRef<number>(0);
+  const isLoopingRef = useRef<boolean>(false);
+
+  useEffect(() => {
+    // If progress wrapped around from high to near-zero, disable tweening
+    if (playheadProgress < prevProgressRef.current && prevProgressRef.current > 0.5) {
+      isLoopingRef.current = true;
+    } else {
+      isLoopingRef.current = false;
+    }
+    prevProgressRef.current = playheadProgress;
+  }, [playheadProgress]);
+
   const { totalLength, lanes, measureBars, mode } = resultant;
 
   // Visual layout dimensions
-  const laneHeight = 52;
-  const laneGap = 14;
+  const laneHeight = 50;
+  const laneGap = 12;
   const numLanes = lanes.length;
-  // Dynamic width based on cycle length to ensure crisp readability
-  // At least 36px per unit tick
-  const tickWidth = Math.max(38, Math.min(68, 900 / totalLength));
+  // Ensure readable width per tick
+  const tickWidth = Math.max(40, Math.min(68, 850 / totalLength));
   const svgWidth = totalLength * tickWidth;
-  const svgHeight = numLanes * (laneHeight + laneGap) + 40;
+  const svgHeight = numLanes * (laneHeight + laneGap) + 38;
 
-  // Calculate measure line X coordinates
   const measureLineXs = measureBars.map((barTick) => barTick * tickWidth);
 
-  // Attack cut guide lines (all attack ticks from all lanes)
   const allCutTicks = Array.from(
     new Set(lanes.flatMap((l) => l.attackTicks))
   ).sort((x, y) => x - y);
 
   return (
-    <div className="bg-schillinger-card rounded-2xl border border-schillinger-border p-5 shadow-xl space-y-4">
-      {/* Visualizer Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-schillinger-border/60 pb-3">
+    <div className="bg-white rounded-2xl border-2 border-slate-900 p-5 shadow-sm space-y-4">
+      {/* Header & Legend */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-3">
         <div className="flex items-center gap-2">
-          <Eye className="w-4 h-4 text-schillinger-resultant" />
-          <h2 className="text-sm font-semibold text-white uppercase tracking-wider">
+          <Eye className="w-4 h-4 text-[#c84b31]" />
+          <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
             Multi-Lane Comparative Graph
           </h2>
-          <span className="text-[11px] font-mono text-schillinger-textMuted bg-schillinger-bg px-2 py-0.5 rounded border border-schillinger-border">
+          <span className="text-[11px] font-mono text-slate-700 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-300 font-bold">
             {mode === 'fractioned' ? 'Fractioned Model' : mode === 'trinomial' ? '3-Part Model' : 'Binary Model'}
           </span>
         </div>
 
         {/* Legend */}
-        <div className="flex flex-wrap items-center gap-3 text-xs font-mono">
+        <div className="flex flex-wrap items-center gap-3 text-xs font-mono font-bold">
           <div className="flex items-center gap-1.5">
-            <span className="w-3 h-3 rounded bg-schillinger-accentA"></span>
-            <span className="text-gray-300">Gen a</span>
+            <span className="w-3 h-3 rounded bg-sky-600"></span>
+            <span className="text-slate-700">Gen a</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="w-3 h-3 rounded bg-schillinger-accentB"></span>
-            <span className="text-gray-300">Gen b</span>
+            <span className="w-3 h-3 rounded bg-rose-600"></span>
+            <span className="text-slate-700">Gen b</span>
           </div>
           {mode === 'trinomial' && (
             <div className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded bg-schillinger-accentC"></span>
-              <span className="text-gray-300">Gen c</span>
+              <span className="w-3 h-3 rounded bg-purple-600"></span>
+              <span className="text-slate-700">Gen c</span>
             </div>
           )}
           <div className="flex items-center gap-1.5">
-            <span className="w-3 h-3 rounded bg-schillinger-resultant"></span>
-            <span className="text-gray-300">Resultant r</span>
+            <span className="w-3 h-3 rounded bg-[#c84b31]"></span>
+            <span className="text-slate-700">Resultant r</span>
           </div>
-          <div className="flex items-center gap-1.5 text-schillinger-resultant font-bold">
-            <span className="px-1 text-[11px] bg-schillinger-resultant/20 border border-schillinger-resultant/40 rounded">
+          <div className="flex items-center gap-1 text-[#c84b31]">
+            <span className="px-1 text-[11px] bg-[#fdf0ec] border border-[#c84b31] rounded">
               &gt;
             </span>
             <span>Accent</span>
@@ -79,27 +90,18 @@ export const MultiLaneVisualizer: React.FC<MultiLaneVisualizerProps> = ({
         </div>
       </div>
 
-      {/* Auto-scrolling Graph Viewport */}
+      {/* Auto-scrolling Graph Viewport - CENTERED */}
       <div
         ref={containerRef}
-        className="w-full overflow-x-auto overflow-y-hidden rounded-xl bg-schillinger-bg/95 border border-schillinger-border/80 p-3 select-none relative scroll-smooth"
+        className="w-full overflow-x-auto rounded-xl bg-slate-50 border-2 border-slate-300 p-3 select-none flex justify-center items-center"
         style={{ WebkitOverflowScrolling: 'touch' }}
       >
         <svg
           width={svgWidth}
           height={svgHeight}
-          className="overflow-visible block"
-          style={{ minWidth: '100%' }}
+          className="overflow-visible block mx-auto"
         >
-          <defs>
-            {/* Soft glow filter for accents */}
-            <filter id="accentGlow" x="-20%" y="-20%" width="140%" height="140%">
-              <feGaussianBlur stdDeviation="3" result="blur" />
-              <feComposite in="SourceGraphic" in2="blur" operator="over" />
-            </filter>
-          </defs>
-
-          {/* Atomic pulse grid vertical ticks (Lane 3 / background) */}
+          {/* Atomic pulse grid vertical ticks */}
           {Array.from({ length: totalLength + 1 }).map((_, tick) => {
             const x = tick * tickWidth;
             return (
@@ -109,17 +111,17 @@ export const MultiLaneVisualizer: React.FC<MultiLaneVisualizerProps> = ({
                   y1={16}
                   x2={x}
                   y2={svgHeight - 16}
-                  stroke="#1c2333"
+                  stroke="#cbd5e1"
                   strokeWidth={tick % 4 === 0 ? 1.5 : 1}
                   strokeDasharray={tick % 4 === 0 ? undefined : '2,2'}
                 />
-                {/* Tick index label at bottom */}
                 <text
                   x={x}
                   y={svgHeight - 4}
-                  fill="#5a6a85"
+                  fill="#64748b"
                   fontSize="10"
                   fontFamily="monospace"
+                  fontWeight="600"
                   textAnchor="middle"
                 >
                   {tick}
@@ -128,7 +130,7 @@ export const MultiLaneVisualizer: React.FC<MultiLaneVisualizerProps> = ({
             );
           })}
 
-          {/* Dotted cut guidelines dropping through resultant */}
+          {/* Dotted cut guidelines */}
           {allCutTicks.map((cutTick) => {
             const x = cutTick * tickWidth;
             return (
@@ -138,17 +140,26 @@ export const MultiLaneVisualizer: React.FC<MultiLaneVisualizerProps> = ({
                 y1={20}
                 x2={x}
                 y2={svgHeight - 20}
-                stroke="#37445c"
+                stroke="#94a3b8"
                 strokeWidth={1}
                 strokeDasharray="3,3"
-                opacity={0.4}
+                opacity={0.6}
               />
             );
           })}
 
           {/* Lanes and Duration Blocks */}
           {lanes.map((lane, laneIdx) => {
-            const y = 24 + laneIdx * (laneHeight + laneGap);
+            const y = 22 + laneIdx * (laneHeight + laneGap);
+            const isResultant = lane.id === 'resultant';
+            const baseColor =
+              lane.id === 'a'
+                ? '#0284c7' // sky-600
+                : lane.id === 'b'
+                ? '#e11d48' // rose-600
+                : lane.id === 'c'
+                ? '#7c3aed' // purple-600
+                : '#c84b31'; // terracotta
 
             return (
               <g key={lane.id}>
@@ -159,27 +170,27 @@ export const MultiLaneVisualizer: React.FC<MultiLaneVisualizerProps> = ({
                   width={svgWidth}
                   height={laneHeight}
                   rx={8}
-                  fill="#111622"
-                  stroke="#1f2737"
-                  strokeWidth={1}
+                  fill="#ffffff"
+                  stroke="#e2e8f0"
+                  strokeWidth={1.5}
                 />
 
-                {/* Lane Label Tag */}
+                {/* Lane Label */}
                 <text
-                  x={8}
-                  y={y - 6}
-                  fill={lane.color}
+                  x={6}
+                  y={y - 5}
+                  fill="#1e293b"
                   fontSize="11"
-                  fontWeight="600"
+                  fontWeight="700"
                   fontFamily="monospace"
                 >
                   {lane.name}
                 </text>
 
-                {/* Duration Blocks */}
+                {/* Blocks */}
                 {lane.blocks.map((block, bIdx) => {
                   const blockX = block.startTick * tickWidth;
-                  const blockW = Math.max(4, block.duration * tickWidth - 3); // 3px visual gap
+                  const blockW = Math.max(4, block.duration * tickWidth - 3);
                   const isHovered = hoveredBlock?.index === block.index && hoveredBlock?.generatorSource === block.generatorSource;
                   const isBlockActive = activeTick >= block.startTick && activeTick < block.startTick + block.duration;
 
@@ -188,7 +199,7 @@ export const MultiLaneVisualizer: React.FC<MultiLaneVisualizerProps> = ({
                       key={`${lane.id}-block-${bIdx}`}
                       onMouseEnter={() => setHoveredBlock(block)}
                       onMouseLeave={() => setHoveredBlock(null)}
-                      className="cursor-pointer transition-transform"
+                      className="cursor-pointer"
                     >
                       <rect
                         x={blockX}
@@ -196,21 +207,20 @@ export const MultiLaneVisualizer: React.FC<MultiLaneVisualizerProps> = ({
                         width={blockW}
                         height={laneHeight - 6}
                         rx={6}
-                        fill={lane.color}
-                        fillOpacity={isBlockActive ? 0.95 : isHovered ? 0.85 : 0.4}
-                        stroke={lane.color}
-                        strokeWidth={isBlockActive ? 2.5 : isHovered ? 2 : 1}
-                        className="transition-all duration-100"
+                        fill={baseColor}
+                        fillOpacity={isBlockActive ? 1.0 : isHovered ? 0.9 : isResultant ? 0.85 : 0.65}
+                        stroke={isBlockActive ? '#0f172a' : baseColor}
+                        strokeWidth={isBlockActive ? 2.5 : 1}
                       />
 
-                      {/* Integer duration printed in center of block */}
+                      {/* Integer duration label inside block */}
                       {blockW > 18 && (
                         <text
                           x={blockX + blockW / 2}
                           y={y + laneHeight / 2 + 5}
                           fill="#ffffff"
                           fontSize="13"
-                          fontWeight="700"
+                          fontWeight="800"
                           fontFamily="monospace"
                           textAnchor="middle"
                           pointerEvents="none"
@@ -219,13 +229,13 @@ export const MultiLaneVisualizer: React.FC<MultiLaneVisualizerProps> = ({
                         </text>
                       )}
 
-                      {/* Accent caret (>) on coincidence of phase */}
+                      {/* Accent caret (>) */}
                       {block.isAccented && (
-                        <g filter="url(#accentGlow)">
+                        <g>
                           <circle
                             cx={blockX + 7}
                             cy={y + 11}
-                            r={3}
+                            r={3.5}
                             fill="#ffffff"
                           />
                           <text
@@ -248,7 +258,7 @@ export const MultiLaneVisualizer: React.FC<MultiLaneVisualizerProps> = ({
             );
           })}
 
-          {/* Metric measure dividers (solid vertical bars) */}
+          {/* Metric measure dividers */}
           {measureLineXs.map((mX, mIdx) => (
             <g key={`measure-${mIdx}`}>
               <line
@@ -256,29 +266,28 @@ export const MultiLaneVisualizer: React.FC<MultiLaneVisualizerProps> = ({
                 y1={16}
                 x2={mX}
                 y2={svgHeight - 16}
-                stroke="#64748b"
+                stroke="#0f172a"
                 strokeWidth={2.5}
                 strokeLinecap="round"
-                opacity={0.85}
               />
               <text
                 x={mX + 4}
                 y={18}
-                fill="#94a3b8"
+                fill="#334155"
                 fontSize="10"
                 fontFamily="monospace"
-                fontWeight="600"
+                fontWeight="700"
               >
                 Bar {mIdx + 1}
               </text>
             </g>
           ))}
 
-          {/* Real-time Hardware Playhead Cursor */}
+          {/* Real-time Hardware Playhead Cursor - Teleport without tweening on loop */}
           <g
             style={{
               transform: `translateX(${playheadProgress * svgWidth}px)`,
-              transition: 'transform 0.04s linear',
+              transition: isLoopingRef.current ? 'none' : 'transform 0.05s linear',
             }}
           >
             <line
@@ -286,41 +295,39 @@ export const MultiLaneVisualizer: React.FC<MultiLaneVisualizerProps> = ({
               y1={10}
               x2={0}
               y2={svgHeight - 12}
-              stroke="#ffffff"
-              strokeWidth={2.5}
+              stroke="#0f172a"
+              strokeWidth={3}
               strokeLinecap="round"
             />
-            {/* Playhead handle top marker */}
             <polygon
               points="-6,10 6,10 0,18"
-              fill="#ffffff"
+              fill="#0f172a"
             />
-            {/* Playhead handle bottom marker */}
             <polygon
-              points="-6,${svgHeight - 12} 6,${svgHeight - 12} 0,${svgHeight - 20}"
-              fill="#ffffff"
+              points={`-6,${svgHeight - 12} 6,${svgHeight - 12} 0,${svgHeight - 20}`}
+              fill="#0f172a"
             />
           </g>
         </svg>
       </div>
 
-      {/* Interactive Duration Inspector Footer */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between text-xs font-mono text-schillinger-textMuted bg-schillinger-panel/60 p-2.5 rounded-xl border border-schillinger-border/60">
+      {/* Footer Info */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between text-xs font-mono text-slate-600 bg-slate-100 p-2.5 rounded-xl border border-slate-300">
         <div className="flex items-center gap-2">
-          <Info className="w-3.5 h-3.5 text-schillinger-resultant" />
+          <Info className="w-3.5 h-3.5 text-[#c84b31]" />
           <span>
             {hoveredBlock ? (
-              <span className="text-white">
-                Selected Block: <strong className="text-schillinger-resultant">{hoveredBlock.duration}</strong> units (from tick {hoveredBlock.startTick} to {hoveredBlock.startTick + hoveredBlock.duration})
-                {hoveredBlock.isAccented ? ' • Accented Attack (Phase Coincidence)' : ''}
+              <span className="text-slate-900">
+                Block: <strong className="text-[#c84b31]">{hoveredBlock.duration}</strong> units (ticks {hoveredBlock.startTick}–{hoveredBlock.startTick + hoveredBlock.duration})
+                {hoveredBlock.isAccented ? ' • Accented Attack' : ''}
               </span>
             ) : (
               <span>Hover or tap any duration block to inspect exact time boundaries</span>
             )}
           </span>
         </div>
-        <div className="text-[11px] text-gray-400 mt-1 sm:mt-0">
-          Current Playhead: <strong className="text-white">{activeTick}</strong> / {totalLength} ticks
+        <div className="text-[11px] text-slate-500 mt-1 sm:mt-0 font-bold">
+          Playhead: <strong className="text-slate-900">{activeTick}</strong> / {totalLength} ticks
         </div>
       </div>
     </div>

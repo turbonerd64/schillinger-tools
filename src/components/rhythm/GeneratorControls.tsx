@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { SyncMode, MetricGrouping } from '../../core/rhythm/types';
-import { Sliders, Sparkles, Split, Hash, Compass } from 'lucide-react';
+import { Sliders, Sparkles, Split, Compass, Gauge } from 'lucide-react';
+import { audioService } from '../../core/audio/synth';
 
 interface GeneratorControlsProps {
   a: number;
@@ -14,6 +15,8 @@ interface GeneratorControlsProps {
   metricGrouping: MetricGrouping;
   setMetricGrouping: (grouping: MetricGrouping) => void;
   totalLength: number;
+  bpm: number;
+  setBpm: (bpm: number) => void;
 }
 
 const PRESETS = [
@@ -21,9 +24,9 @@ const PRESETS = [
   { label: '4 ÷ 3', a: 4, b: 3, desc: 'Polyrhythmic standard' },
   { label: '5 ÷ 2', a: 5, b: 2, desc: 'Balkan / Quintuple' },
   { label: '5 ÷ 3', a: 5, b: 3, desc: 'Harmonic contrast' },
-  { label: '5 ÷ 4', a: 5, b: 4, desc: 'Modern metric tension' },
+  { label: '5 ÷ 4', a: 5, b: 4, desc: 'Metric tension' },
   { label: '7 ÷ 4', a: 7, b: 4, desc: 'Asymmetric 28-pulse' },
-  { label: '8 ÷ 5', a: 8, b: 5, desc: 'Golden / Fibonacci' },
+  { label: '8 ÷ 5', a: 8, b: 5, desc: 'Fibonacci ratio' },
 ];
 
 export const GeneratorControls: React.FC<GeneratorControlsProps> = ({
@@ -38,7 +41,30 @@ export const GeneratorControls: React.FC<GeneratorControlsProps> = ({
   metricGrouping,
   setMetricGrouping,
   totalLength,
+  bpm,
+  setBpm,
 }) => {
+  const [tapTimes, setTapTimes] = useState<number[]>([]);
+
+  const handleTapTempo = () => {
+    const now = Date.now();
+    const recentTaps = [...tapTimes.filter((t) => now - t < 3000), now];
+    setTapTimes(recentTaps);
+
+    if (recentTaps.length >= 2) {
+      const intervals = [];
+      for (let i = 1; i < recentTaps.length; i++) {
+        intervals.push(recentTaps[i] - recentTaps[i - 1]);
+      }
+      const avgInterval = intervals.reduce((x, y) => x + y, 0) / intervals.length;
+      const calculatedBpm = Math.round(60000 / avgInterval);
+      if (calculatedBpm >= 40 && calculatedBpm <= 260) {
+        setBpm(calculatedBpm);
+        audioService.setBpm(calculatedBpm);
+      }
+    }
+  };
+
   const handleAChange = (newA: number) => {
     const validA = Math.max(2, Math.min(16, newA));
     setA(validA);
@@ -57,25 +83,25 @@ export const GeneratorControls: React.FC<GeneratorControlsProps> = ({
   };
 
   return (
-    <div className="bg-schillinger-card rounded-2xl border border-schillinger-border p-5 space-y-6 shadow-xl">
-      {/* Section Header */}
-      <div className="flex items-center justify-between border-b border-schillinger-border/60 pb-3">
-        <div className="flex items-center gap-2.5">
-          <Sliders className="w-4 h-4 text-schillinger-accentA" />
-          <h2 className="text-sm font-semibold text-white uppercase tracking-wider">
+    <div className="bg-white rounded-2xl border-2 border-slate-900 p-5 shadow-sm space-y-5">
+      {/* Header */}
+      <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+        <div className="flex items-center gap-2">
+          <Sliders className="w-4 h-4 text-[#c84b31]" />
+          <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
             Generator Parameters
           </h2>
         </div>
-        <div className="text-xs font-mono text-schillinger-textMuted bg-schillinger-bg px-2.5 py-1 rounded-md border border-schillinger-border">
-          Cycle: <span className="text-schillinger-resultant font-bold">{totalLength}</span> units
+        <div className="text-xs font-mono font-bold text-slate-700 bg-slate-100 px-3 py-1 rounded-full border border-slate-300">
+          Cycle: <span className="text-[#c84b31]">{totalLength}</span> units
         </div>
       </div>
 
       {/* Preset Pills */}
       <div>
-        <label className="text-xs font-medium text-schillinger-textMuted mb-2 block flex items-center gap-1.5">
-          <Sparkles className="w-3.5 h-3.5 text-schillinger-resultant" />
-          <span>Schillinger Classic Presets</span>
+        <label className="text-xs font-bold text-slate-600 mb-2 block flex items-center gap-1.5">
+          <Sparkles className="w-3.5 h-3.5 text-[#c84b31]" />
+          <span>Quick Rhythmic Presets</span>
         </label>
         <div className="flex flex-wrap gap-1.5">
           {PRESETS.map((preset) => {
@@ -89,10 +115,10 @@ export const GeneratorControls: React.FC<GeneratorControlsProps> = ({
                   if (mode === 'trinomial') setMode('binary');
                 }}
                 title={preset.desc}
-                className={`px-3 py-1.5 rounded-lg text-xs font-mono transition-all border ${
+                className={`px-3 py-1.5 rounded-full text-xs font-mono font-bold transition-all border-2 ${
                   isSelected
-                    ? 'bg-schillinger-resultant/20 border-schillinger-resultant text-schillinger-resultant font-bold shadow-md shadow-schillinger-resultant/10'
-                    : 'bg-schillinger-panel/60 border-schillinger-border/80 text-gray-300 hover:border-gray-500 hover:text-white'
+                    ? 'bg-[#c84b31] border-[#c84b31] text-white shadow-sm'
+                    : 'bg-slate-50 border-slate-300 text-slate-700 hover:border-slate-900 hover:text-slate-950'
                 }`}
               >
                 {preset.label}
@@ -102,61 +128,61 @@ export const GeneratorControls: React.FC<GeneratorControlsProps> = ({
         </div>
       </div>
 
-      {/* Mode Selector */}
-      <div className="space-y-2">
-        <label className="text-xs font-medium text-schillinger-textMuted block flex items-center gap-1.5">
-          <Split className="w-3.5 h-3.5 text-schillinger-accentB" />
-          <span>Interference Mode (Book I Chapter 2 & 4)</span>
+      {/* Interference Model Toggle */}
+      <div className="space-y-1.5">
+        <label className="text-xs font-bold text-slate-600 block flex items-center gap-1.5">
+          <Split className="w-3.5 h-3.5 text-slate-700" />
+          <span>Interference Model</span>
         </label>
         <div className="grid grid-cols-3 gap-2">
           <button
             onClick={() => setMode('binary')}
-            className={`p-2.5 rounded-xl border text-left transition-all ${
+            className={`p-2.5 rounded-xl border-2 text-left transition-all ${
               mode === 'binary'
-                ? 'bg-schillinger-accentA/15 border-schillinger-accentA text-white shadow-md shadow-schillinger-accentA/5'
-                : 'bg-schillinger-panel/50 border-schillinger-border/70 text-schillinger-textMuted hover:text-gray-200'
+                ? 'bg-slate-900 border-slate-900 text-white shadow-sm'
+                : 'bg-slate-50 border-slate-200 text-slate-700 hover:border-slate-400'
             }`}
           >
-            <div className="text-xs font-bold font-mono text-schillinger-accentA">a ÷ b</div>
-            <div className="text-[11px] text-gray-400 mt-0.5 leading-snug">Binary Sync (ab)</div>
+            <div className="text-xs font-bold font-mono">a ÷ b</div>
+            <div className="text-[10px] opacity-80 mt-0.5">Binary Sync (ab)</div>
           </button>
 
           <button
             onClick={() => setMode('fractioned')}
-            className={`p-2.5 rounded-xl border text-left transition-all ${
+            className={`p-2.5 rounded-xl border-2 text-left transition-all ${
               mode === 'fractioned'
-                ? 'bg-schillinger-accentB/15 border-schillinger-accentB text-white shadow-md shadow-schillinger-accentB/5'
-                : 'bg-schillinger-panel/50 border-schillinger-border/70 text-schillinger-textMuted hover:text-gray-200'
+                ? 'bg-slate-900 border-slate-900 text-white shadow-sm'
+                : 'bg-slate-50 border-slate-200 text-slate-700 hover:border-slate-400'
             }`}
           >
-            <div className="text-xs font-bold font-mono text-schillinger-accentB">a ÷ b̲</div>
-            <div className="text-[11px] text-gray-400 mt-0.5 leading-snug">Fractioning (a²)</div>
+            <div className="text-xs font-bold font-mono">a ÷ b̲</div>
+            <div className="text-[10px] opacity-80 mt-0.5">Fractioning (a²)</div>
           </button>
 
           <button
             onClick={() => setMode('trinomial')}
-            className={`p-2.5 rounded-xl border text-left transition-all ${
+            className={`p-2.5 rounded-xl border-2 text-left transition-all ${
               mode === 'trinomial'
-                ? 'bg-schillinger-accentC/15 border-schillinger-accentC text-white shadow-md shadow-schillinger-accentC/5'
-                : 'bg-schillinger-panel/50 border-schillinger-border/70 text-schillinger-textMuted hover:text-gray-200'
+                ? 'bg-slate-900 border-slate-900 text-white shadow-sm'
+                : 'bg-slate-50 border-slate-200 text-slate-700 hover:border-slate-400'
             }`}
           >
-            <div className="text-xs font-bold font-mono text-schillinger-accentC">a ÷ b ÷ c</div>
-            <div className="text-[11px] text-gray-400 mt-0.5 leading-snug">3 Generators (abc)</div>
+            <div className="text-xs font-bold font-mono">a ÷ b ÷ c</div>
+            <div className="text-[10px] opacity-80 mt-0.5">3 Generators</div>
           </button>
         </div>
       </div>
 
-      {/* Generator Steppers / Sliders */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      {/* Generator Sliders + Tempo Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {/* Major Generator (a) */}
-        <div className="p-3.5 rounded-xl bg-schillinger-panel/80 border border-schillinger-border space-y-2">
+        <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-1.5">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-schillinger-accentA font-mono flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-schillinger-accentA inline-block"></span>
-              Major Generator (a)
+            <span className="text-xs font-bold font-mono text-sky-700 flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-sky-600 inline-block"></span>
+              Major (a)
             </span>
-            <span className="text-base font-bold font-mono text-white bg-schillinger-bg px-2.5 py-0.5 rounded border border-schillinger-border">
+            <span className="text-sm font-bold font-mono text-slate-900 bg-white px-2 py-0.5 rounded border border-slate-300">
               {a}
             </span>
           </div>
@@ -166,22 +192,19 @@ export const GeneratorControls: React.FC<GeneratorControlsProps> = ({
             max={12}
             value={a}
             onChange={(e) => handleAChange(parseInt(e.target.value))}
-            className="w-full h-1.5 bg-schillinger-grid rounded-lg appearance-none cursor-pointer accent-schillinger-accentA"
+            className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-sky-600"
           />
-          <div className="flex justify-between items-center text-[10px] font-mono text-schillinger-textMuted">
-            <span>Period: {a} units</span>
-            <span>Attacks: {mode === 'fractioned' ? a + 1 : (totalLength / a) + 1}</span>
-          </div>
+          <div className="text-[10px] font-mono text-slate-500">Period: {a} units</div>
         </div>
 
         {/* Minor Generator (b) */}
-        <div className="p-3.5 rounded-xl bg-schillinger-panel/80 border border-schillinger-border space-y-2">
+        <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-1.5">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-schillinger-accentB font-mono flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-schillinger-accentB inline-block"></span>
-              Minor Generator (b)
+            <span className="text-xs font-bold font-mono text-rose-700 flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-rose-600 inline-block"></span>
+              Minor (b)
             </span>
-            <span className="text-base font-bold font-mono text-white bg-schillinger-bg px-2.5 py-0.5 rounded border border-schillinger-border">
+            <span className="text-sm font-bold font-mono text-slate-900 bg-white px-2 py-0.5 rounded border border-slate-300">
               {b}
             </span>
           </div>
@@ -191,27 +214,54 @@ export const GeneratorControls: React.FC<GeneratorControlsProps> = ({
             max={Math.max(1, a - 1)}
             value={b}
             onChange={(e) => handleBChange(parseInt(e.target.value))}
-            className="w-full h-1.5 bg-schillinger-grid rounded-lg appearance-none cursor-pointer accent-schillinger-accentB"
+            className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-rose-600"
           />
-          <div className="flex justify-between items-center text-[10px] font-mono text-schillinger-textMuted">
-            <span>Period: {b} units</span>
-            <span>
-              {mode === 'fractioned'
-                ? `${a - b + 1} groups of ${a} attacks`
-                : `Attacks: ${(totalLength / b) + 1}`}
-            </span>
-          </div>
+          <div className="text-[10px] font-mono text-slate-500">Period: {b} units</div>
         </div>
 
-        {/* Third Generator (c) if Trinomial mode */}
+        {/* Tempo in Generator Parameters */}
+        <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-1.5">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold font-mono text-slate-800 flex items-center gap-1.5">
+              <Gauge className="w-3.5 h-3.5 text-[#c84b31]" />
+              Tempo
+            </span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-sm font-bold font-mono text-slate-900 bg-white px-2 py-0.5 rounded border border-slate-300">
+                {bpm}
+              </span>
+              <button
+                onClick={handleTapTempo}
+                className="px-1.5 py-0.5 text-[10px] font-mono font-bold bg-white border border-slate-300 rounded hover:border-slate-800 active:scale-95 transition-all"
+              >
+                TAP
+              </button>
+            </div>
+          </div>
+          <input
+            type="range"
+            min={40}
+            max={240}
+            value={bpm}
+            onChange={(e) => {
+              const val = parseInt(e.target.value);
+              setBpm(val);
+              audioService.setBpm(val);
+            }}
+            className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#c84b31]"
+          />
+          <div className="text-[10px] font-mono text-slate-500">BPM (Beats per Minute)</div>
+        </div>
+
+        {/* Third Generator (c) if 3-generator mode */}
         {mode === 'trinomial' && (
-          <div className="sm:col-span-2 p-3.5 rounded-xl bg-schillinger-panel/80 border border-schillinger-border space-y-2">
+          <div className="sm:col-span-2 lg:col-span-3 p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-1.5">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-schillinger-accentC font-mono flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-schillinger-accentC inline-block"></span>
+              <span className="text-xs font-bold font-mono text-purple-700 flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-purple-600 inline-block"></span>
                 Tertium Generator (c)
               </span>
-              <span className="text-base font-bold font-mono text-white bg-schillinger-bg px-2.5 py-0.5 rounded border border-schillinger-border">
+              <span className="text-sm font-bold font-mono text-slate-900 bg-white px-2 py-0.5 rounded border border-slate-300">
                 {c}
               </span>
             </div>
@@ -221,57 +271,53 @@ export const GeneratorControls: React.FC<GeneratorControlsProps> = ({
               max={12}
               value={c}
               onChange={(e) => handleCChange(parseInt(e.target.value))}
-              className="w-full h-1.5 bg-schillinger-grid rounded-lg appearance-none cursor-pointer accent-schillinger-accentC"
+              className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-purple-600"
             />
-            <div className="flex justify-between items-center text-[10px] font-mono text-schillinger-textMuted">
-              <span>Period: {c} units</span>
-              <span>Common Product: {a * b * c}</span>
-            </div>
           </div>
         )}
       </div>
 
-      {/* Metric Grouping (Book I Chapter 3) */}
-      <div className="space-y-2 pt-2 border-t border-schillinger-border/60">
-        <label className="text-xs font-medium text-schillinger-textMuted block flex items-center gap-1.5">
-          <Compass className="w-3.5 h-3.5 text-schillinger-resultant" />
-          <span>Metric Measure Grouping (Chapter 3)</span>
+      {/* Metric Grouping */}
+      <div className="space-y-1.5 pt-2 border-t border-slate-200">
+        <label className="text-xs font-bold text-slate-600 block flex items-center gap-1.5">
+          <Compass className="w-3.5 h-3.5 text-slate-700" />
+          <span>Metric Measure Grouping</span>
         </label>
         <div className="grid grid-cols-3 gap-2">
           <button
             onClick={() => setMetricGrouping('ab')}
-            className={`py-2 px-3 rounded-lg text-xs font-mono transition-all border ${
+            className={`py-2 px-3 rounded-xl text-xs font-mono font-bold transition-all border-2 ${
               metricGrouping === 'ab'
-                ? 'bg-schillinger-resultant/20 border-schillinger-resultant text-schillinger-resultant font-bold'
-                : 'bg-schillinger-panel/50 border-schillinger-border text-gray-400 hover:text-white'
+                ? 'bg-slate-900 border-slate-900 text-white shadow-2xs'
+                : 'bg-slate-50 border-slate-200 text-slate-700 hover:border-slate-400'
             }`}
           >
             Group by ab
-            <div className="text-[10px] text-gray-500 font-sans">1 bar ({totalLength}t)</div>
+            <div className="text-[10px] opacity-75 font-sans font-normal">1 bar ({totalLength}t)</div>
           </button>
 
           <button
             onClick={() => setMetricGrouping('a')}
-            className={`py-2 px-3 rounded-lg text-xs font-mono transition-all border ${
+            className={`py-2 px-3 rounded-xl text-xs font-mono font-bold transition-all border-2 ${
               metricGrouping === 'a'
-                ? 'bg-schillinger-accentA/20 border-schillinger-accentA text-schillinger-accentA font-bold'
-                : 'bg-schillinger-panel/50 border-schillinger-border text-gray-400 hover:text-white'
+                ? 'bg-slate-900 border-slate-900 text-white shadow-2xs'
+                : 'bg-slate-50 border-slate-200 text-slate-700 hover:border-slate-400'
             }`}
           >
             Group by a
-            <div className="text-[10px] text-gray-500 font-sans">{b} bars ({a}t each)</div>
+            <div className="text-[10px] opacity-75 font-sans font-normal">{b} bars ({a}t each)</div>
           </button>
 
           <button
             onClick={() => setMetricGrouping('b')}
-            className={`py-2 px-3 rounded-lg text-xs font-mono transition-all border ${
+            className={`py-2 px-3 rounded-xl text-xs font-mono font-bold transition-all border-2 ${
               metricGrouping === 'b'
-                ? 'bg-schillinger-accentB/20 border-schillinger-accentB text-schillinger-accentB font-bold'
-                : 'bg-schillinger-panel/50 border-schillinger-border text-gray-400 hover:text-white'
+                ? 'bg-slate-900 border-slate-900 text-white shadow-2xs'
+                : 'bg-slate-50 border-slate-200 text-slate-700 hover:border-slate-400'
             }`}
           >
             Group by b
-            <div className="text-[10px] text-gray-500 font-sans">{a} bars ({b}t each)</div>
+            <div className="text-[10px] opacity-75 font-sans font-normal">{a} bars ({b}t each)</div>
           </button>
         </div>
       </div>
