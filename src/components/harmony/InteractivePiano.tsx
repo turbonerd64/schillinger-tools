@@ -68,13 +68,14 @@ export const InteractivePiano: React.FC<InteractivePianoProps> = ({
               <button
                 key={`white-${midi}`}
                 onClick={() => onPlayNote?.(midi)}
-                className={`flex-1 h-full border-r border-b border-slate-300 rounded-b-md flex flex-col justify-end items-center pb-1.5 transition-all text-[10px] font-bold font-mono ${
+                className={`flex-1 h-full border-r border-b border-slate-300 rounded-b-md flex flex-col justify-end items-center pb-1.5 transition-all text-[11px] font-mono font-extrabold ${
                   isActive
                     ? isBass
-                      ? 'bg-[#c84b31] text-white shadow-inner'
-                      : 'bg-slate-900 text-white shadow-inner'
+                      ? 'bg-[#c84b31] text-white border-2 border-[#c84b31] shadow-md z-1 scale-y-105'
+                      : 'bg-sky-500 text-white border-2 border-sky-600 shadow-md z-1 scale-y-105'
                     : 'bg-white hover:bg-slate-50 text-slate-400'
                 }`}
+                title={`${noteName}${Math.floor(midi / 12) - 1} (${midi})`}
               >
                 {isActive ? noteName : ''}
               </button>
@@ -93,13 +94,14 @@ export const InteractivePiano: React.FC<InteractivePianoProps> = ({
               key={`black-${midi}`}
               onClick={() => onPlayNote?.(midi)}
               style={{ left: `${leftPercent}%`, width: `${(1 / whiteKeys.length) * 70}%` }}
-              className={`absolute top-1 h-[60%] rounded-b-sm z-10 flex flex-col justify-end items-center pb-1 transition-all text-[9px] font-bold font-mono shadow-md ${
+              className={`absolute top-1 h-[60%] rounded-b-sm z-10 flex flex-col justify-end items-center pb-1 transition-all text-[10px] font-mono font-extrabold shadow-md ${
                 isActive
                   ? isBass
-                    ? 'bg-[#c84b31] text-white border-2 border-white'
-                    : 'bg-amber-500 text-slate-950 border-2 border-white'
+                    ? 'bg-[#c84b31] text-white border-2 border-white ring-2 ring-[#c84b31]'
+                    : 'bg-amber-400 text-slate-950 border-2 border-white ring-2 ring-amber-400'
                   : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
               }`}
+              title={`${noteName}${Math.floor(midi / 12) - 1} (${midi})`}
             >
               {isActive ? noteName : ''}
             </button>

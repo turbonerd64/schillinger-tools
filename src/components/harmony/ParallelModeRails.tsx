@@ -10,6 +10,7 @@ interface ParallelModeRailsProps {
   activeRails: ScaleDefinition[];
   setActiveRails: React.Dispatch<React.SetStateAction<ScaleDefinition[]>>;
   railChordsMap: Record<string, ChordItem[]>;
+  masterChords: ChordItem[];
   activeChordIndex: number;
   onSelectChord: (chord: ChordItem, stepIdx: number) => void;
   onSwapIntoMaster: (chord: ChordItem, stepIdx: number) => void;
@@ -19,6 +20,7 @@ export const ParallelModeRails: React.FC<ParallelModeRailsProps> = ({
   activeRails,
   setActiveRails,
   railChordsMap,
+  masterChords,
   activeChordIndex,
   onSelectChord,
   onSwapIntoMaster,
@@ -115,7 +117,9 @@ export const ParallelModeRails: React.FC<ParallelModeRailsProps> = ({
                 style={{ WebkitOverflowScrolling: 'touch' }}
               >
                 {chords.map((chord, stepIdx) => {
-                  const isCurrent = activeChordIndex === stepIdx;
+                  const isColumnActive = activeChordIndex === stepIdx;
+                  const masterChordAtStep = masterChords[stepIdx];
+                  const isSoundingInMaster = isColumnActive && masterChordAtStep?.sourceScaleId === scale.id;
                   const isFirstInCycle = stepIdx % 4 === 0;
 
                   return (
@@ -130,9 +134,12 @@ export const ParallelModeRails: React.FC<ParallelModeRailsProps> = ({
                         onDoubleClick={() => {
                           onSwapIntoMaster(chord, stepIdx);
                         }}
+                        style={isSoundingInMaster ? { backgroundColor: scale.color } : undefined}
                         className={`w-24 sm:w-28 py-3.5 px-2 rounded-2xl font-bold font-mono transition-all text-center border-2 relative shadow-sm active:scale-95 ${
-                          isCurrent
-                            ? 'bg-slate-900 border-slate-900 text-white scale-105 shadow-md'
+                          isSoundingInMaster
+                            ? 'text-white border-white ring-4 ring-slate-900 scale-105 shadow-xl z-20'
+                            : isColumnActive
+                            ? 'bg-white/90 border-slate-400 text-slate-800 ring-2 ring-slate-300 opacity-80'
                             : isFirstInCycle
                             ? 'bg-white border-[#c84b31] text-[#c84b31] hover:bg-[#c84b31] hover:text-white'
                             : 'bg-white border-slate-900 text-slate-900 hover:bg-slate-900 hover:text-white'
@@ -142,7 +149,7 @@ export const ParallelModeRails: React.FC<ParallelModeRailsProps> = ({
                         <div className="text-base sm:text-lg font-extrabold tracking-tight">
                           {chord.chordName}
                         </div>
-                        <div className="text-xs sm:text-sm opacity-80 font-mono mt-0.5 font-bold">
+                        <div className="text-xs sm:text-sm opacity-85 font-mono mt-0.5 font-bold">
                           {chord.romanNumeral}
                         </div>
 
@@ -159,9 +166,15 @@ export const ParallelModeRails: React.FC<ParallelModeRailsProps> = ({
                         </div>
                       </button>
 
-                      <span className="text-xs font-mono font-bold text-slate-500 mt-1">
-                        #{stepIdx + 1}
-                      </span>
+                      {isSoundingInMaster ? (
+                        <span className="text-[10px] font-mono font-extrabold text-white bg-slate-900 px-2 py-0.5 rounded-full mt-1.5 shadow-sm">
+                          ● Active
+                        </span>
+                      ) : (
+                        <span className="text-xs font-mono font-bold text-slate-500 mt-1">
+                          #{stepIdx + 1}
+                        </span>
+                      )}
                     </div>
                   );
                 })}

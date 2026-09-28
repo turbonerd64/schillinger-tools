@@ -36,6 +36,7 @@ export const HarmonyStudioView: React.FC<HarmonyStudioViewProps> = ({
   const [structure, setStructure] = useState<ChordStructureType>('S7');
   const [totalChordsCount, setTotalChordsCount] = useState<number>(8);
   const [bpm, setBpm] = useState<number>(90);
+  const [instrument, setInstrument] = useState<'epiano' | 'piano' | 'guitar'>('epiano');
 
   // Active cyclic formula moves
   const [formula, setFormula] = useState<CycleMove[]>([
@@ -80,7 +81,7 @@ export const HarmonyStudioView: React.FC<HarmonyStudioViewProps> = ({
   const handleSelectChord = (chord: ChordItem, stepIdx: number) => {
     setSelectedChordIndex(stepIdx);
     if (chord.voicedMidiNotes && chord.voicedMidiNotes.length > 0) {
-      audioService.playVoicedChord(chord.voicedMidiNotes, 0.8);
+      audioService.playVoicedChord(chord.voicedMidiNotes, 0.8, instrument);
     }
   };
 
@@ -94,7 +95,7 @@ export const HarmonyStudioView: React.FC<HarmonyStudioViewProps> = ({
     const reVoiced = applyGreedyVoiceLeading(updated);
     setMasterChords(reVoiced);
     setSelectedChordIndex(stepIdx);
-    audioService.playVoicedChord(reVoiced[stepIdx].voicedMidiNotes, 0.8);
+    audioService.playVoicedChord(reVoiced[stepIdx].voicedMidiNotes, 0.8, instrument);
   };
 
   const handleApplyChunkMode = (scale: ScaleDefinition, startIndex: number, endIndex: number) => {
@@ -113,6 +114,9 @@ export const HarmonyStudioView: React.FC<HarmonyStudioViewProps> = ({
     }
     const reVoiced = applyGreedyVoiceLeading(updated);
     setMasterChords(reVoiced);
+    if (reVoiced[startIndex]?.voicedMidiNotes) {
+      audioService.playVoicedChord(reVoiced[startIndex].voicedMidiNotes, 0.8, instrument);
+    }
   };
 
   // Progression playback loop
@@ -124,14 +128,14 @@ export const HarmonyStudioView: React.FC<HarmonyStudioViewProps> = ({
           const next = (prev + 1) % masterChords.length;
           const nextChord = masterChords[next];
           if (nextChord && nextChord.voicedMidiNotes) {
-            audioService.playVoicedChord(nextChord.voicedMidiNotes, (intervalMs / 1000) * 0.9);
+            audioService.playVoicedChord(nextChord.voicedMidiNotes, (intervalMs / 1000) * 0.9, instrument);
           }
           return next;
         });
       }, intervalMs);
 
       if (currentChord && currentChord.voicedMidiNotes) {
-        audioService.playVoicedChord(currentChord.voicedMidiNotes, (intervalMs / 1000) * 0.9);
+        audioService.playVoicedChord(currentChord.voicedMidiNotes, (intervalMs / 1000) * 0.9, instrument);
       }
     } else {
       if (playTimerRef.current !== null) {
@@ -145,7 +149,7 @@ export const HarmonyStudioView: React.FC<HarmonyStudioViewProps> = ({
         window.clearInterval(playTimerRef.current);
       }
     };
-  }, [isPlaying, bpm, masterChords]);
+  }, [isPlaying, bpm, masterChords, instrument]);
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
@@ -164,6 +168,8 @@ export const HarmonyStudioView: React.FC<HarmonyStudioViewProps> = ({
         }}
         bpm={bpm}
         setBpm={setBpm}
+        instrument={instrument}
+        setInstrument={setInstrument}
       />
 
       {/* 2. MASTER PROGRESSION LANE FIRST (Above Parallel Rails) */}
@@ -182,6 +188,7 @@ export const HarmonyStudioView: React.FC<HarmonyStudioViewProps> = ({
         activeRails={activeRails}
         setActiveRails={setActiveRails}
         railChordsMap={railChordsMap}
+        masterChords={masterChords}
         activeChordIndex={selectedChordIndex}
         onSelectChord={handleSelectChord}
         onSwapIntoMaster={(chord, stepIdx) => handleSwapChord(stepIdx, chord)}
@@ -191,7 +198,7 @@ export const HarmonyStudioView: React.FC<HarmonyStudioViewProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <InteractivePiano
           activeMidiNotes={currentChord?.voicedMidiNotes || []}
-          onPlayNote={(midi) => audioService.playVoicedChord([midi], 0.6)}
+          onPlayNote={(midi) => audioService.playVoicedChord([midi], 0.6, instrument)}
         />
 
         <InteractiveFretboard
@@ -200,8 +207,8 @@ export const HarmonyStudioView: React.FC<HarmonyStudioViewProps> = ({
         />
       </div>
 
-      {/* 5. Export Panel */}
-      <HarmonyExportPanel chords={masterChords} bpm={bpm} />
+      {/* 5. Export Panel with Multi-format support */}
+      <HarmonyExportPanel chords={masterChords} bpm={bpm} tonicRoot={tonicRoot} />
     </div>
   );
 };

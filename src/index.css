@@ -16,10 +16,18 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+#root {
+  /* 90% UI scale requested by user */
+  zoom: 0.9;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
 /* Crisp minimal scrollbars */
 ::-webkit-scrollbar {
-  height: 7px;
-  width: 7px;
+  height: 6px;
+  width: 6px;
 }
 ::-webkit-scrollbar-track {
   background: #f1f5f9;

@@ -283,3 +283,55 @@ export function applyGreedyVoiceLeading(chords: ChordItem[]): ChordItem[] {
     };
   });
 }
+
+/**
+ * Formats a chord progression string into Chord Symbols, Roman Numerals, or Nashville Numbers
+ */
+export function formatProgression(
+  chords: ChordItem[],
+  tonicRoot: number,
+  format: 'symbols' | 'roman' | 'nashville'
+): string {
+  if (format === 'symbols') {
+    return chords.map((c) => c.chordName).join(' - ');
+  }
+
+  if (format === 'roman') {
+    return chords.map((c) => c.romanNumeral).join(' - ');
+  }
+
+  // Nashville Number System
+  const NASHVILLE_STEPS: Record<number, string> = {
+    0: '1',
+    1: 'b2',
+    2: '2',
+    3: 'b3',
+    4: '3',
+    5: '4',
+    6: 'b5',
+    7: '5',
+    8: 'b6',
+    9: '6',
+    10: 'b7',
+    11: '7',
+  };
+
+  return chords
+    .map((c) => {
+      const semitonesFromTonic = (c.rootPitchClass - tonicRoot + 12) % 12;
+      const stepNum = NASHVILLE_STEPS[semitonesFromTonic] || `${semitonesFromTonic}`;
+      const q = c.quality;
+      let suffix = '';
+      if (q === 'm') suffix = 'm';
+      else if (q === 'm7') suffix = 'm7';
+      else if (q === 'maj7') suffix = 'maj7';
+      else if (q === '7') suffix = '7';
+      else if (q === 'm7b5') suffix = 'ø';
+      else if (q === 'dim' || q === 'dim7') suffix = '°';
+      else if (q && q !== 'exotic') suffix = q;
+
+      return `${stepNum}${suffix}`;
+    })
+    .join(' - ');
+}
+

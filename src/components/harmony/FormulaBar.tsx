@@ -23,6 +23,8 @@ interface FormulaBarProps {
   setTotalChordsCount: (count: number) => void;
   bpm: number;
   setBpm: (bpm: number) => void;
+  instrument: 'epiano' | 'piano' | 'guitar';
+  setInstrument: (inst: 'epiano' | 'piano' | 'guitar') => void;
 }
 
 export const FormulaBar: React.FC<FormulaBarProps> = ({
@@ -36,6 +38,8 @@ export const FormulaBar: React.FC<FormulaBarProps> = ({
   setTotalChordsCount,
   bpm,
   setBpm,
+  instrument,
+  setInstrument,
 }) => {
   const addMove = (move: CycleMove) => {
     if (formula.length < 8) {
@@ -93,7 +97,7 @@ export const FormulaBar: React.FC<FormulaBarProps> = ({
             onClick={applyPreset1}
             className="px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-bold bg-[#fdf0ec] border-2 border-[#c84b31] text-[#c84b31] hover:bg-[#c84b31] hover:text-white transition-all shadow-sm"
           >
-            Aleksei C3/C5 Formula
+            C3/C5 Formula
           </button>
           <button
             onClick={applyPresetCycle5}
@@ -111,18 +115,18 @@ export const FormulaBar: React.FC<FormulaBarProps> = ({
       </div>
 
       {/* Main Parameters Grid with larger text */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-3 sm:gap-4">
         {/* Tonic Key */}
-        <div className="md:col-span-4 p-3.5 rounded-xl bg-slate-50 border-2 border-slate-200 space-y-2">
+        <div className="md:col-span-3 p-3.5 rounded-xl bg-slate-50 border-2 border-slate-200 space-y-2">
           <label className="text-xs sm:text-sm font-extrabold text-slate-800 uppercase tracking-wider block font-mono">
             Tonic Root Key
           </label>
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex flex-wrap gap-1">
             {NOTE_NAMES.map((name, idx) => (
               <button
                 key={name}
                 onClick={() => setTonicRoot(idx)}
-                className={`w-8 h-8 rounded-lg text-xs sm:text-sm font-mono font-extrabold transition-all border-2 ${
+                className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg text-xs sm:text-sm font-mono font-extrabold transition-all border-2 ${
                   tonicRoot === idx
                     ? 'bg-[#c84b31] border-[#c84b31] text-white shadow-sm scale-105'
                     : 'bg-white border-slate-300 text-slate-800 hover:border-slate-900'
@@ -135,24 +139,25 @@ export const FormulaBar: React.FC<FormulaBarProps> = ({
         </div>
 
         {/* Chord Structure */}
-        <div className="md:col-span-3 p-3.5 rounded-xl bg-slate-50 border-2 border-slate-200 space-y-2">
+        <div className="md:col-span-2 p-3.5 rounded-xl bg-slate-50 border-2 border-slate-200 space-y-2">
           <label className="text-xs sm:text-sm font-extrabold text-slate-800 uppercase tracking-wider block font-mono">
             Chord Density
           </label>
-          <div className="flex gap-2">
+          <div className="flex gap-1.5">
             {[
-              { id: 'S5', label: 'Triad (S5)' },
-              { id: 'S7', label: '7th (S7)' },
-              { id: 'S9', label: '9th (S9)' },
+              { id: 'S5', label: 'Triad' },
+              { id: 'S7', label: '7th' },
+              { id: 'S9', label: '9th' },
             ].map((item) => (
               <button
                 key={item.id}
                 onClick={() => setStructure(item.id as ChordStructureType)}
-                className={`flex-1 py-2 px-1 rounded-xl text-xs sm:text-sm font-extrabold font-mono border-2 transition-all ${
+                className={`flex-1 py-2 px-0.5 rounded-xl text-xs sm:text-sm font-extrabold font-mono border-2 transition-all ${
                   structure === item.id
                     ? 'bg-slate-900 border-slate-900 text-white shadow-2xs'
                     : 'bg-white border-slate-300 text-slate-700 hover:border-slate-800'
                 }`}
+                title={item.label}
               >
                 {item.id}
               </button>
@@ -160,14 +165,40 @@ export const FormulaBar: React.FC<FormulaBarProps> = ({
           </div>
         </div>
 
-        {/* Progression Length */}
+        {/* Instrument Selector */}
         <div className="md:col-span-3 p-3.5 rounded-xl bg-slate-50 border-2 border-slate-200 space-y-2">
+          <label className="text-xs sm:text-sm font-extrabold text-slate-800 uppercase tracking-wider block font-mono">
+            Instrument Timbre
+          </label>
+          <div className="flex gap-1.5">
+            {[
+              { id: 'epiano', label: 'Rhodes' },
+              { id: 'piano', label: 'Piano' },
+              { id: 'guitar', label: 'Guitar' },
+            ].map((inst) => (
+              <button
+                key={inst.id}
+                onClick={() => setInstrument(inst.id as 'epiano' | 'piano' | 'guitar')}
+                className={`flex-1 py-2 px-1 rounded-xl text-xs sm:text-sm font-extrabold font-mono border-2 transition-all ${
+                  instrument === inst.id
+                    ? 'bg-[#c84b31] border-[#c84b31] text-white shadow-2xs'
+                    : 'bg-white border-slate-300 text-slate-700 hover:border-slate-800'
+                }`}
+              >
+                {inst.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Progression Length */}
+        <div className="md:col-span-2 p-3.5 rounded-xl bg-slate-50 border-2 border-slate-200 space-y-2">
           <div className="flex items-center justify-between">
             <label className="text-xs sm:text-sm font-extrabold text-slate-800 uppercase tracking-wider font-mono">
-              Progression Length
+              Length
             </label>
-            <span className="text-sm sm:text-base font-mono font-extrabold text-[#c84b31] bg-white px-2 py-0.5 rounded border border-slate-300">
-              {totalChordsCount} chords
+            <span className="text-xs sm:text-sm font-mono font-extrabold text-[#c84b31] bg-white px-1.5 py-0.5 rounded border border-slate-300">
+              {totalChordsCount} ch
             </span>
           </div>
           <input
@@ -186,7 +217,7 @@ export const FormulaBar: React.FC<FormulaBarProps> = ({
             <label className="text-xs sm:text-sm font-extrabold text-slate-800 uppercase tracking-wider font-mono">
               Tempo
             </label>
-            <span className="text-sm sm:text-base font-mono font-extrabold text-slate-900 bg-white px-2 py-0.5 rounded border border-slate-300">
+            <span className="text-xs sm:text-sm font-mono font-extrabold text-slate-900 bg-white px-1.5 py-0.5 rounded border border-slate-300">
               {bpm}
             </span>
           </div>
