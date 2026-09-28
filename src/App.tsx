@@ -16,6 +16,7 @@ import {
   MetricGrouping,
   RhythmVariationState,
 } from './core/rhythm/types';
+import { getPresetById, calculatePresetResultant } from './core/rhythm/presets';
 import { audioService } from './core/audio/synth';
 
 export function App() {
@@ -30,6 +31,22 @@ export function App() {
   const [c, setC] = useState<number>(2);
   const [mode, setMode] = useState<SyncMode>('binary');
   const [metricGrouping, setMetricGrouping] = useState<MetricGrouping>('ab');
+
+  // Preset Selection State (Default: Polyrhythmic Matrix 4 ÷ 3)
+  const [selectedPresetId, setSelectedPresetId] = useState<string>('matrix_4_3');
+
+  const handleSelectPreset = (presetId: string) => {
+    setSelectedPresetId(presetId);
+    const preset = getPresetById(presetId);
+    if (preset && preset.generators) {
+      setA(preset.generators.a);
+      setB(preset.generators.b);
+      setMode(preset.generators.mode);
+      if (preset.generators.c) {
+        setC(preset.generators.c);
+      }
+    }
+  };
 
   // Variations
   const [variations, setVariations] = useState<RhythmVariationState>({
@@ -59,10 +76,15 @@ export function App() {
   const [harmonyIndex, setHarmonyIndex] = useState<number>(0);
   const [harmonyCount, setHarmonyCount] = useState<number>(8);
 
-  // Compute master Schillinger resultant
+  // Compute master Schillinger resultant (standard or custom genre preset)
+  const activePreset = useMemo(() => getPresetById(selectedPresetId), [selectedPresetId]);
+
   const resultant = useMemo(() => {
+    if (activePreset && activePreset.isCustomDuration) {
+      return calculatePresetResultant(activePreset);
+    }
     return calculateSchillingerRhythm(a, b, mode, metricGrouping, c);
-  }, [a, b, mode, metricGrouping, c]);
+  }, [a, b, mode, metricGrouping, c, activePreset]);
 
   // Compute variations on resultant
   const { durations: displayedDurations, accentIndices: displayedAccents } = useMemo(() => {
@@ -206,6 +228,8 @@ export function App() {
               setBpm={setBpm}
               variations={variations}
               setVariations={setVariations}
+              selectedPresetId={selectedPresetId}
+              onSelectPreset={handleSelectPreset}
             />
 
             {/* 2. Centered Rhythm Architecture & Resultant Wave Graph */}
