@@ -314,6 +314,22 @@ export const UnifiedRhythmControls: React.FC<UnifiedRhythmControlsProps> = ({
               </button>
             )}
           </div>
+          {/* Tempo Slider */}
+          <div className="flex items-center gap-2 bg-slate-50 border-2 border-slate-300 px-3 py-1.5 rounded-xl">
+            <Gauge className="w-4 h-4 text-[#c84b31]" />
+            <span className="text-xs sm:text-sm font-bold font-mono text-slate-900">
+              Tempo: <span className="text-[#c84b31] font-bold">{bpm}</span>
+            </span>
+            <input
+              type="range"
+              min={40}
+              max={240}
+              value={bpm}
+              onChange={(e) => setBpm(parseInt(e.target.value))}
+              className="w-20 sm:w-28 h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#c84b31]"
+              title="Rhythm Tempo (BPM)"
+            />
+          </div>
         </div>
 
         {/* Distributive Square Compact Badge */}

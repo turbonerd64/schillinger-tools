@@ -157,13 +157,14 @@ export const MultiLaneVisualizer: React.FC<MultiLaneVisualizerProps> = ({
             const y = 24 + laneIdx * (laneHeight + laneGap);
             const isResultant = lane.id === 'resultant';
             const baseColor =
-              lane.id === 'a'
+              lane.color ||
+              (lane.id === 'a'
                 ? '#0284c7'
-                : lane.id === 'b'
+                : lane.id.startsWith('b')
                 ? '#e11d48'
                 : lane.id === 'c'
                 ? '#7c3aed'
-                : '#c84b31';
+                : '#c84b31');
 
             return (
               <g key={lane.id}>

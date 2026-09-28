@@ -288,18 +288,29 @@ export function calculateSchillingerRhythm(
 
     const aBlocks = attacksToBlocks(res.aAttacks, res.totalLength, 'a');
     
-    // For fractioned b, merge all b-group attacks
-    const bBlocks: DurationBlock[] = [];
-    res.bGroupsAttacks.forEach((group, gIdx) => {
+    // In Schillinger's system (Book I, Chapter 5), each fraction group is a distinct sub-generator
+    // starting at phase 0, a, 2a, etc. Displaying each on its own lane eliminates visual block overlap!
+    const bLanes: GeneratorLane[] = res.bGroupsAttacks.map((group, gIdx) => {
+      const gBlocks: DurationBlock[] = [];
       for (let i = 0; i < group.length - 1; i++) {
-        bBlocks.push({
-          index: bBlocks.length,
+        gBlocks.push({
+          index: i,
           startTick: group[i],
           duration: group[i + 1] - group[i],
           isAccented: i === 0,
           generatorSource: 'b',
         });
       }
+      return {
+        id: `b_${gIdx + 1}`,
+        name: `Fractioned Minor (b̲${gIdx + 1} = ${b})`,
+        symbol: `b̲${gIdx + 1}`,
+        period: b,
+        totalLength: res.totalLength,
+        blocks: gBlocks,
+        attackTicks: group,
+        color: gIdx === 0 ? '#e11d48' : '#f43f5e',
+      };
     });
 
     const resultantBlocks = attacksToBlocks(res.allAttacks, res.totalLength, 'resultant', accentSet);
@@ -313,18 +324,9 @@ export function calculateSchillingerRhythm(
         totalLength: res.totalLength,
         blocks: aBlocks,
         attackTicks: res.aAttacks,
-        color: '#00e5ff',
+        color: '#0284c7',
       },
-      {
-        id: 'b',
-        name: `Fractioned Minor (b̲ = ${b}, ${a - b + 1} groups)`,
-        symbol: 'b̲',
-        period: b,
-        totalLength: res.totalLength,
-        blocks: bBlocks,
-        attackTicks: Array.from(new Set(res.bGroupsAttacks.flat())).sort((x, y) => x - y),
-        color: '#ff5376',
-      },
+      ...bLanes,
       {
         id: 'resultant',
         name: `Resultant (r a÷b̲)`,
@@ -333,7 +335,7 @@ export function calculateSchillingerRhythm(
         totalLength: res.totalLength,
         blocks: resultantBlocks,
         attackTicks: res.allAttacks,
-        color: '#ffb300',
+        color: '#c84b31',
       },
     ];
 

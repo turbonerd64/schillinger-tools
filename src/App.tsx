@@ -39,9 +39,20 @@ export function App() {
 
   // Rhythm Transport State
   const [isPlayingRhythm, setIsPlayingRhythm] = useState<boolean>(false);
-  const [bpm, setBpm] = useState<number>(120);
+  const [bpm, setBpm] = useState<number>(100);
   const [activeTick, setActiveTick] = useState<number>(0);
   const [playheadProgress, setPlayheadProgress] = useState<number>(0);
+
+  // Stop / pause audio when changing tabs
+  useEffect(() => {
+    if (activeTab !== 'rhythm' && isPlayingRhythm) {
+      audioService.pause();
+      setIsPlayingRhythm(false);
+    }
+    if (activeTab !== 'harmony' && isPlayingHarmony) {
+      setIsPlayingHarmony(false);
+    }
+  }, [activeTab]);
 
   // Harmony Transport State
   const [isPlayingHarmony, setIsPlayingHarmony] = useState<boolean>(false);
@@ -72,9 +83,11 @@ export function App() {
       events.push({ tick, channel: 'a', isAccented: tick === 0 });
     });
 
-    // Lane B attacks
-    resultant.lanes.find((l) => l.id === 'b')?.attackTicks.forEach((tick) => {
-      events.push({ tick, channel: 'b', isAccented: tick === 0 });
+    // Lane B attacks (including fractioned b_1, b_2, etc.)
+    resultant.lanes.filter((l) => l.id.startsWith('b')).forEach((lane) => {
+      lane.attackTicks.forEach((tick) => {
+        events.push({ tick, channel: 'b', isAccented: tick === 0 });
+      });
     });
 
     // Lane C attacks if trinomial

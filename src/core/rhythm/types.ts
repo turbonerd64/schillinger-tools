@@ -18,7 +18,7 @@ export interface DurationBlock {
 }
 
 export interface GeneratorLane {
-  id: 'a' | 'b' | 'c' | 'resultant' | 'countertheme';
+  id: string;
   name: string;
   symbol: string;
   period: number;

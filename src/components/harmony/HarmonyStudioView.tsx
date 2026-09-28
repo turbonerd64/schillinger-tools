@@ -35,7 +35,7 @@ export const HarmonyStudioView: React.FC<HarmonyStudioViewProps> = ({
   const [tonicRoot, setTonicRoot] = useState<number>(0); // C
   const [structure, setStructure] = useState<ChordStructureType>('S7');
   const [totalChordsCount, setTotalChordsCount] = useState<number>(8);
-  const [bpm, setBpm] = useState<number>(90);
+  const [bpm, setBpm] = useState<number>(100);
 
   // Active cyclic formula moves
   const [formula, setFormula] = useState<CycleMove[]>([

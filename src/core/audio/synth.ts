@@ -14,7 +14,7 @@ class SchillingerAudioEngine {
   private masterGainNode: GainNode | null = null;
   private isPlaying: boolean = false;
   private timerId: number | null = null;
-  private bpm: number = 120;
+  private bpm: number = 100;
   private masterVolume: number = 0.85;
   private currentTick: number = 0;
   private totalTicks: number = 12;
