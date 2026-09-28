@@ -87,11 +87,6 @@ export function App() {
   const [isPlayingHarmony, setIsPlayingHarmony] = useState<boolean>(false);
   const [harmonyIndex, setHarmonyIndex] = useState<number>(0);
   const [harmonyCount, setHarmonyCount] = useState<number>(8);
-  const [isStraightHarmony, setIsStraightHarmony] = useState<boolean>(false);
-
-  const handleToggleStraightHarmony = useCallback(() => {
-    setIsStraightHarmony((prev) => !prev);
-  }, []);
 
 
   // Compute master Schillinger resultant (standard or custom genre preset)
@@ -239,8 +234,6 @@ export function App() {
         onStepForwardHarmony={handleStepForwardHarmony}
         harmonyCurrentIndex={harmonyIndex}
         harmonyTotalChords={harmonyCount}
-        isStraightHarmony={isStraightHarmony}
-        onToggleStraightHarmony={handleToggleStraightHarmony}
       />
 
       {/* Main Content Area */}
@@ -300,8 +293,20 @@ export function App() {
             setSelectedChordIndex={setHarmonyIndex}
             onChordCountUpdate={(count) => setHarmonyCount(count)}
             bpm={bpm}
-            isStraightHarmony={isStraightHarmony}
-            onToggleStraightHarmony={handleToggleStraightHarmony}
+            liveRhythm={{
+              a,
+              b,
+              c,
+              mode,
+              metricGrouping,
+              durations: displayedDurations,
+              accentIndices: displayedAccents,
+              totalLength: resultant.totalLength,
+              name: activePreset ? activePreset.name : `${a} ÷ ${b}${mode === 'fractioned' ? '̲' : ''}`,
+              description: activePreset ? activePreset.description : `Schillinger resultant ${a} ÷ ${b}`,
+              isReversed: variations.isReversed,
+              rotationOffset: variations.rotationOffset,
+            }}
             rhythmParams={{
               a,
               b,

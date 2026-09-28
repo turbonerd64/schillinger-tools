@@ -43,10 +43,6 @@ interface HeaderProps {
   onStepForwardHarmony: () => void;
   harmonyCurrentIndex: number;
   harmonyTotalChords: number;
-
-  // Harmony Straight Mode (Mute Rhythm)
-  isStraightHarmony?: boolean;
-  onToggleStraightHarmony?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -70,8 +66,6 @@ export const Header: React.FC<HeaderProps> = ({
   onStepForwardHarmony,
   harmonyCurrentIndex,
   harmonyTotalChords,
-  isStraightHarmony = false,
-  onToggleStraightHarmony,
 }) => {
   return (
     <>
@@ -152,35 +146,6 @@ export const Header: React.FC<HeaderProps> = ({
                       <SkipForward className="w-3.5 h-3.5" />
                     </button>
                   </div>
-
-                  {/* Disable / Mute Rhythm Toggle Button */}
-                  {onToggleStraightHarmony && (
-                    <button
-                      onClick={onToggleStraightHarmony}
-                      className={`px-2.5 py-1.5 rounded-xl font-mono text-xs font-extrabold flex items-center gap-1.5 border-2 transition-all active:scale-95 shadow-2xs ${
-                        isStraightHarmony
-                          ? 'bg-amber-100 border-amber-600 text-amber-900 hover:bg-amber-200'
-                          : 'bg-white border-slate-300 text-slate-700 hover:border-slate-800'
-                      }`}
-                      title={
-                        isStraightHarmony
-                          ? 'Rhythm is Muted: Chords play as straight sustained pads. Click to re-enable groove.'
-                          : 'Rhythm is Active: Chords groove to Schillinger resultant. Click to mute rhythm and play straight.'
-                      }
-                    >
-                      {isStraightHarmony ? (
-                        <>
-                          <VolumeX className="w-3.5 h-3.5 text-amber-700" />
-                          <span>Straight</span>
-                        </>
-                      ) : (
-                        <>
-                          <Activity className="w-3.5 h-3.5 text-[#c84b31]" />
-                          <span>Groove</span>
-                        </>
-                      )}
-                    </button>
-                  )}
 
                   <span className="text-xs font-mono font-extrabold text-slate-900 px-1 text-right">
                     {harmonyCurrentIndex + 1}/{harmonyTotalChords}

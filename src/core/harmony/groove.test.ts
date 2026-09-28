@@ -116,4 +116,34 @@ describe('Harmony Groove Coupling Engine', () => {
       expect(note.pitches.length).toBe(1);
     }
   });
+
+  it('verifies ALL_HARMONY_GROOVE_PRESETS includes all rhythm presets', async () => {
+    const { ALL_HARMONY_GROOVE_PRESETS, convertRhythmPresetToGroove } = await import('./groove');
+    const { RHYTHM_PRESETS } = await import('../rhythm/presets');
+
+    expect(ALL_HARMONY_GROOVE_PRESETS.length).toBeGreaterThanOrEqual(RHYTHM_PRESETS.length);
+
+    // Verify custom duration preset conversion (e.g. Rhumba Tresillo)
+    const tresillo = RHYTHM_PRESETS.find((p) => p.id === 'rhumba_tresillo')!;
+    const convertedTresillo = convertRhythmPresetToGroove(tresillo);
+    expect(convertedTresillo.id).toBe('rhythm_rhumba_tresillo');
+    expect(convertedTresillo.durations).toEqual([3, 3, 2]);
+    expect(convertedTresillo.totalLength).toBe(8);
+
+    // Verify standard generator preset conversion (e.g. Matrix 4 ÷ 3)
+    const matrix = RHYTHM_PRESETS.find((p) => p.id === 'matrix_4_3')!;
+    const convertedMatrix = convertRhythmPresetToGroove(matrix);
+    expect(convertedMatrix.durations).toEqual([3, 1, 2, 2, 1, 3]);
+    expect(convertedMatrix.totalLength).toBe(12);
+  });
+
+  it('creates live coupled groove directly inheriting current rhythm state', async () => {
+    const { createLiveRhythmGroove } = await import('./groove');
+    const live = createLiveRhythmGroove([5, 3, 2], [0], 10, 'Custom Polyrhythm', 'Live resultant');
+    expect(live.id).toBe('live_rhythm');
+    expect(live.totalLength).toBe(10);
+    expect(live.durations).toEqual([5, 3, 2]);
+    expect(live.accentIndices).toEqual([0]);
+  });
 });
+

@@ -20,6 +20,8 @@ import {
   GrooveStyle,
   HarmonyGroovePattern,
   HARMONY_GROOVE_PRESETS,
+  ALL_HARMONY_GROOVE_PRESETS,
+  createLiveRhythmGroove,
   createGrooveFromRhythmState,
   generateProgressionArrangement,
 } from '../../core/harmony/groove';
@@ -33,12 +35,28 @@ import { HarmonyExportPanel } from './HarmonyExportPanel';
 import { audioService } from '../../core/audio/synth';
 import { SyncMode, MetricGrouping } from '../../core/rhythm/types';
 
+export interface LiveRhythmData {
+  a: number;
+  b: number;
+  c?: number;
+  mode: SyncMode;
+  metricGrouping: MetricGrouping;
+  durations: number[];
+  accentIndices: number[];
+  totalLength: number;
+  name: string;
+  description: string;
+  isReversed?: boolean;
+  rotationOffset?: number;
+}
+
 interface HarmonyStudioViewProps {
   isPlaying: boolean;
   setIsPlaying: (playing: boolean) => void;
   selectedChordIndex: number;
   setSelectedChordIndex: React.Dispatch<React.SetStateAction<number>>;
   onChordCountUpdate?: (count: number) => void;
+  liveRhythm?: LiveRhythmData;
   rhythmParams?: {
     a: number;
     b: number;
@@ -49,8 +67,6 @@ interface HarmonyStudioViewProps {
     rotationOffset?: number;
   };
   bpm: number;
-  isStraightHarmony?: boolean;
-  onToggleStraightHarmony?: () => void;
 }
 
 export const HarmonyStudioView: React.FC<HarmonyStudioViewProps> = ({
@@ -59,10 +75,9 @@ export const HarmonyStudioView: React.FC<HarmonyStudioViewProps> = ({
   selectedChordIndex,
   setSelectedChordIndex,
   onChordCountUpdate,
+  liveRhythm,
   rhythmParams,
   bpm,
-  isStraightHarmony = false,
-  onToggleStraightHarmony,
 }) => {
   const [tonicRoot, setTonicRoot] = useState<number>(0); // C
   const [structure, setStructure] = useState<ChordStructureType>('S7');
@@ -263,47 +278,65 @@ export const HarmonyStudioView: React.FC<HarmonyStudioViewProps> = ({
     }
   };
 
-  // Groove Realization State
-  const [selectedGrooveId, setSelectedGrooveId] = useState<string>('gershwin_4_3');
+  // Groove Realization State - Defaults to inheriting from the live Rhythm Studio
+  const [selectedGrooveId, setSelectedGrooveId] = useState<string>('live_rhythm');
   const [grooveStyle, setGrooveStyle] = useState<GrooveStyle>('comping');
   const [includePercussion, setIncludePercussion] = useState<boolean>(true);
 
   // Dynamic live groove preset from active Rhythm Studio parameters
-  const liveRhythmPreset = useMemo(() => {
-    if (!rhythmParams) return null;
-    return createGrooveFromRhythmState(
-      rhythmParams.a,
-      rhythmParams.b,
-      rhythmParams.mode,
-      rhythmParams.metricGrouping,
-      rhythmParams.c,
-      rhythmParams.isReversed,
-      rhythmParams.rotationOffset
-    );
-  }, [rhythmParams]);
-
-  const groovePresets = useMemo(() => {
-    if (liveRhythmPreset) {
-      return [liveRhythmPreset, ...HARMONY_GROOVE_PRESETS];
+  const liveGroovePreset = useMemo<HarmonyGroovePattern | null>(() => {
+    if (liveRhythm) {
+      return createLiveRhythmGroove(
+        liveRhythm.durations,
+        liveRhythm.accentIndices,
+        liveRhythm.totalLength,
+        liveRhythm.name,
+        liveRhythm.description
+      );
     }
-    return HARMONY_GROOVE_PRESETS;
-  }, [liveRhythmPreset]);
+    if (rhythmParams) {
+      return createGrooveFromRhythmState(
+        rhythmParams.a,
+        rhythmParams.b,
+        rhythmParams.mode,
+        rhythmParams.metricGrouping,
+        rhythmParams.c,
+        rhythmParams.isReversed,
+        rhythmParams.rotationOffset
+      );
+    }
+    return null;
+  }, [liveRhythm, rhythmParams]);
+
+  // Combined groove presets: Live Rhythm + Curated Grooves + All Rhythm Presets
+  const groovePresets = useMemo(() => {
+    const list: HarmonyGroovePattern[] = [];
+    if (liveGroovePreset) {
+      list.push(liveGroovePreset);
+    }
+    for (const p of ALL_HARMONY_GROOVE_PRESETS) {
+      if (p.id !== 'sustained' && !list.some((existing) => existing.id === p.id || existing.name === p.name)) {
+        list.push(p);
+      }
+    }
+    return list;
+  }, [liveGroovePreset]);
 
   const activeGroove = useMemo(() => {
-    return groovePresets.find((g) => g.id === selectedGrooveId) || groovePresets[0];
+    return groovePresets.find((g) => g.id === selectedGrooveId) || groovePresets[0] || HARMONY_GROOVE_PRESETS[1];
   }, [groovePresets, selectedGrooveId]);
 
   // Synchronize dynamic arrangement into Web Audio lookahead scheduler
   useEffect(() => {
     if (!masterChords || masterChords.length === 0) return;
 
-    const effectiveStyle = isStraightHarmony ? 'sustained' : grooveStyle;
-    const effectivePercussion = isStraightHarmony ? false : includePercussion;
+    // Straight mode mutes rhythmic subdivision and percussion
+    const effectivePercussion = grooveStyle === 'sustained' ? false : includePercussion;
 
     const arrangement = generateProgressionArrangement(
       masterChords,
       activeGroove,
-      effectiveStyle,
+      grooveStyle,
       effectivePercussion
     );
 
@@ -369,7 +402,7 @@ export const HarmonyStudioView: React.FC<HarmonyStudioViewProps> = ({
     }
 
     audioService.loadHarmonySequence(arrangement.totalTimelineUnits, stepMap);
-  }, [masterChords, activeGroove, grooveStyle, includePercussion, bpm, isStraightHarmony]);
+  }, [masterChords, activeGroove, grooveStyle, includePercussion, bpm]);
 
   // Tempo sync
   useEffect(() => {
@@ -432,8 +465,13 @@ export const HarmonyStudioView: React.FC<HarmonyStudioViewProps> = ({
         includePercussion={includePercussion}
         setIncludePercussion={setIncludePercussion}
         activeGroove={activeGroove}
-        isStraightHarmony={isStraightHarmony}
-        onToggleStraightHarmony={onToggleStraightHarmony}
+        onSelectLiveRhythm={() => {
+          setSelectedGrooveId('live_rhythm');
+          if (grooveStyle === 'sustained') {
+            setGrooveStyle('comping');
+          }
+        }}
+        liveRhythmName={liveRhythm?.name || 'Live Rhythm Studio'}
       />
 
       {/* 3. MASTER PROGRESSION LANE */}
@@ -480,8 +518,8 @@ export const HarmonyStudioView: React.FC<HarmonyStudioViewProps> = ({
         bpm={bpm}
         tonicRoot={tonicRoot}
         activeGroove={activeGroove}
-        grooveStyle={isStraightHarmony ? 'sustained' : grooveStyle}
-        includePercussion={isStraightHarmony ? false : includePercussion}
+        grooveStyle={grooveStyle}
+        includePercussion={grooveStyle === 'sustained' ? false : includePercussion}
       />
     </div>
   );

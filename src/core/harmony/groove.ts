@@ -5,6 +5,7 @@ import {
   applyRhythmVariations,
 } from '../rhythm/engine';
 import { SyncMode, MetricGrouping } from '../rhythm/types';
+import { RHYTHM_PRESETS, GenrePreset } from '../rhythm/presets';
 
 export type GrooveStyle =
   | 'sustained'   // Classical sustained chord blocks (no rhythmic subdivision)
@@ -121,9 +122,98 @@ export const HARMONY_GROOVE_PRESETS: HarmonyGroovePattern[] = [
   ),
 ];
 
+/**
+ * Converts a GenrePreset from Rhythm Studio into a HarmonyGroovePattern
+ */
+export function convertRhythmPresetToGroove(preset: GenrePreset): HarmonyGroovePattern {
+  let durations = [...preset.durations];
+  let accents = preset.accents ? [...preset.accents] : [0];
+  let totalLength = durations.reduce((sum, d) => sum + d, 0);
+
+  if (preset.generators && !preset.isCustomDuration) {
+    const res = calculateSchillingerRhythm(
+      preset.generators.a,
+      preset.generators.b,
+      preset.generators.mode,
+      'ab',
+      preset.generators.c
+    );
+    durations = res.durations;
+    accents = res.accentIndices;
+    totalLength = res.totalLength;
+  }
+
+  let category: 'Standard' | 'Syncopated' | 'Symmetric' | 'Complex' = 'Standard';
+  if (
+    preset.genre.includes('Latin') ||
+    preset.genre.includes('Dance') ||
+    preset.genre.includes('Swing')
+  ) {
+    category = 'Syncopated';
+  } else if (preset.genre.includes('Classical') || preset.genre.includes('Pedagogical')) {
+    category = 'Symmetric';
+  } else if (
+    preset.genre.includes('Complex') ||
+    preset.name.includes('7') ||
+    preset.name.includes('8') ||
+    preset.name.includes('Fibonacci')
+  ) {
+    category = 'Complex';
+  }
+
+  return {
+    id: `rhythm_${preset.id}`,
+    name: `${preset.name}`,
+    category,
+    description: `${preset.genre}: ${preset.description}`,
+    a: preset.generators?.a || 4,
+    b: preset.generators?.b || 3,
+    c: preset.generators?.c,
+    mode: preset.generators?.mode || 'binary',
+    metricGrouping: 'ab',
+    durations,
+    accentIndices: accents,
+    totalLength,
+  };
+}
 
 /**
- * Creates a custom groove pattern directly from Rhythm Studio parameters
+ * All available groove presets combining curated harmony styles and rhythm presets
+ */
+export const ALL_HARMONY_GROOVE_PRESETS: HarmonyGroovePattern[] = [
+  ...HARMONY_GROOVE_PRESETS,
+  ...RHYTHM_PRESETS.map(convertRhythmPresetToGroove).filter(
+    (rp) => !HARMONY_GROOVE_PRESETS.some((hp) => hp.id === rp.id)
+  ),
+];
+
+/**
+ * Creates a live coupled groove pattern directly from the Rhythm Tab's current resultant
+ */
+export function createLiveRhythmGroove(
+  durations: number[],
+  accentIndices: number[],
+  totalLength: number,
+  name: string = 'Live Rhythm Generator',
+  description: string = 'Dynamic resultant inherited from active Rhythm Tab'
+): HarmonyGroovePattern {
+  return {
+    id: 'live_rhythm',
+    name: `Custom (Inherit from Rhythm Tab)`,
+    category: 'Standard',
+    description: `${description} (${durations.length} attacks, ${totalLength} units)`,
+    a: 4,
+    b: 3,
+    mode: 'binary',
+    metricGrouping: 'ab',
+    durations: durations.length > 0 ? durations : [4, 4, 4, 4],
+    accentIndices: accentIndices.length > 0 ? accentIndices : [0],
+    totalLength: totalLength > 0 ? totalLength : 16,
+  };
+}
+
+/**
+ * Creates a custom groove pattern directly from Rhythm Studio generator parameters
  */
 export function createGrooveFromRhythmState(
   a: number,
@@ -143,10 +233,10 @@ export function createGrooveFromRhythmState(
   );
 
   return {
-    id: `custom_${a}_${b}_${mode}`,
-    name: `Rhythm Studio (${a} ÷ ${b}${mode === 'fractioned' ? '̲' : ''})`,
+    id: 'live_rhythm',
+    name: `Custom (Inherit from Rhythm Tab)`,
     category: 'Standard',
-    description: `Real-time synchronization using active Rhythm Studio generator parameters.`,
+    description: `Real-time synchronization using active Rhythm Studio parameters (${a} ÷ ${b}).`,
     a,
     b,
     c,
