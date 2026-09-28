@@ -41,13 +41,16 @@ function write32(val: number): number[] {
 }
 
 export interface MidiNoteEvent {
-  durationUnits: number; // in atomic time units (e.g. 16th notes)
-  isAccented: boolean;
-  pitch?: number; // default 60 (Middle C) or GM percussion 75 (Claves)
+  durationUnits: number; // in atomic time units (e.g. 1 unit = 16th note, 4 units = quarter note)
+  isAccented?: boolean;
+  pitch?: number; // Single note pitch (GM 0-127)
+  pitches?: number[]; // Polyphonic chord pitches triggered simultaneously
+  velocity?: number; // Custom velocity override (default 85, or 120 if accented)
+  gateRatio?: number; // Sustain gate ratio (e.g. 0.95 for sustained chords, 0.85 for percussion)
 }
 
 /**
- * Builds a standard MIDI file for the given durations sequence
+ * Builds a standard MIDI file for the given durations sequence (supports monophonic and polyphonic chords)
  */
 export function buildMidiFile(
   notes: MidiNoteEvent[],
@@ -82,20 +85,29 @@ export function buildMidiFile(
 
   for (const note of notes) {
     const noteDurationTicks = Math.round(note.durationUnits * ticksPerUnit);
-    const velocity = note.isAccented ? 120 : 85;
-    const pitch = note.pitch ?? midiPitch;
+    const velocity = note.velocity ?? (note.isAccented ? 120 : 85);
+    const pitches = note.pitches && note.pitches.length > 0 
+      ? note.pitches 
+      : [note.pitch ?? midiPitch];
+    const gateRatio = note.gateRatio ?? (note.pitches && note.pitches.length > 1 ? 0.95 : 0.85);
 
-    // Note ON with pending delta
-    trackEvents.push(...writeVarLen(pendingDelta));
-    trackEvents.push(0x90, pitch, velocity);
+    // Gate duration for note articulation
+    const gateTicks = Math.max(10, Math.round(noteDurationTicks * gateRatio));
+    const restTicks = Math.max(0, noteDurationTicks - gateTicks);
 
-    // Note OFF after duration
-    // (gate duration: 85% of length for articulate percussive separation)
-    const gateTicks = Math.max(10, Math.round(noteDurationTicks * 0.85));
-    const restTicks = noteDurationTicks - gateTicks;
+    // Note ON for all pitches simultaneously
+    pitches.forEach((pitch, i) => {
+      const delta = i === 0 ? pendingDelta : 0;
+      trackEvents.push(...writeVarLen(delta));
+      trackEvents.push(0x90, pitch, velocity);
+    });
 
-    trackEvents.push(...writeVarLen(gateTicks));
-    trackEvents.push(0x80, pitch, 0x00);
+    // Note OFF for all pitches after gateTicks
+    pitches.forEach((pitch, i) => {
+      const delta = i === 0 ? gateTicks : 0;
+      trackEvents.push(...writeVarLen(delta));
+      trackEvents.push(0x80, pitch, 0x00);
+    });
 
     pendingDelta = restTicks;
   }

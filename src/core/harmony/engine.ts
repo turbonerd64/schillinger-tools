@@ -206,22 +206,18 @@ export function generateRailChords(
       sourceColor: scaleDef.color,
     });
 
-    // Advance degree by formula move
+    // Advance degree by formula move across any N-tone scale:
     const move = formula[step % formulaLen];
-    // In any N-tone scale:
-    // If move.id is c3_down: -2 steps => (currentDegree - 2 + N) % N
-    // If move.id is c3_up: +2 steps => (currentDegree + 2) % N
-    // If move.id is c5_down: -4 steps => (currentDegree - 4 + N) % N
-    // If move.id is c5_up: +4 steps => (currentDegree + 4) % N
-    // If move.id is c7_down: +1 step => (currentDegree + 1) % N
-    // If move.id is c7_up: -1 step => (currentDegree - 1 + N) % N
+    // Moving by an interval of k scale degrees down: delta = -(k - 1)
+    // Moving by an interval of k scale degrees up:   delta = +(k - 1)
     let stepDelta = 0;
-    if (move.id === 'c3_down') stepDelta = -2;
-    else if (move.id === 'c3_up') stepDelta = 2;
-    else if (move.id === 'c5_down') stepDelta = -4;
-    else if (move.id === 'c5_up') stepDelta = 4;
-    else if (move.id === 'c7_down') stepDelta = 1;
-    else if (move.id === 'c7_up') stepDelta = -1;
+    if (move.id === 'c3_down') stepDelta = -(3 - 1);
+    else if (move.id === 'c3_up') stepDelta = +(3 - 1);
+    else if (move.id === 'c5_down') stepDelta = -(5 - 1);
+    else if (move.id === 'c5_up') stepDelta = +(5 - 1);
+    else if (move.id === 'c7_down') stepDelta = -(7 - 1);
+    else if (move.id === 'c7_up') stepDelta = +(7 - 1);
+    else if (move.stepOffset !== undefined) stepDelta = move.stepOffset;
 
     currentDegree = ((currentDegree + stepDelta) % N + N) % N;
   }

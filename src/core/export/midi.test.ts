@@ -22,4 +22,26 @@ describe('Standard MIDI File Builder', () => {
     const str = String.fromCharCode(...bytes.slice(0, 30));
     expect(str).toContain('MTrk');
   });
+
+  it('generates polyphonic simultaneous chord events at delta 0', () => {
+    const chords = [
+      { durationUnits: 16, pitches: [48, 55, 60, 64], isAccented: false },
+      { durationUnits: 16, pitches: [45, 52, 57, 60], isAccented: false },
+    ];
+
+    const bytes = buildMidiFile(chords, 100, 'Schillinger Chords');
+    expect(bytes.length).toBeGreaterThan(40);
+
+    // Verify all four pitches of chord 1 appear in Note ON events (0x90)
+    expect(Array.from(bytes)).toEqual(expect.arrayContaining([0x90, 48]));
+    expect(Array.from(bytes)).toEqual(expect.arrayContaining([0x90, 55]));
+    expect(Array.from(bytes)).toEqual(expect.arrayContaining([0x90, 60]));
+    expect(Array.from(bytes)).toEqual(expect.arrayContaining([0x90, 64]));
+
+    // Verify all four pitches appear in Note OFF events (0x80)
+    expect(Array.from(bytes)).toEqual(expect.arrayContaining([0x80, 48]));
+    expect(Array.from(bytes)).toEqual(expect.arrayContaining([0x80, 55]));
+    expect(Array.from(bytes)).toEqual(expect.arrayContaining([0x80, 60]));
+    expect(Array.from(bytes)).toEqual(expect.arrayContaining([0x80, 64]));
+  });
 });

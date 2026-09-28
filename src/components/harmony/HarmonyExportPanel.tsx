@@ -51,16 +51,15 @@ export const HarmonyExportPanel: React.FC<HarmonyExportPanelProps> = ({
   };
 
   const handleExportMidi = () => {
-    const notes: MidiNoteEvent[] = [];
-    chords.forEach((c) => {
-      c.voicedMidiNotes.forEach((pitch, voiceIdx) => {
-        notes.push({
-          durationUnits: 4,
-          isAccented: voiceIdx === 0,
-          pitch,
-        });
-      });
-    });
+    // Export 1 chord per full measure (16 atomic time units = 4 quarter notes)
+    // with all voiced pitches triggered simultaneously as a true polyphonic block
+    const notes: MidiNoteEvent[] = chords.map((c) => ({
+      durationUnits: 16,
+      pitches: c.voicedMidiNotes && c.voicedMidiNotes.length > 0 ? c.voicedMidiNotes : [60],
+      velocity: 85,
+      gateRatio: 0.95,
+      isAccented: false,
+    }));
 
     downloadMidiFile(notes, 'schillinger_harmony_progression', bpm, 'Schillinger Chords');
     setMidiSuccess(true);

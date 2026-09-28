@@ -108,4 +108,22 @@ describe('Schillinger Harmony Engine Test Cases', () => {
       expect(bass).toBeLessThanOrEqual(55);
     });
   });
+
+  it('correctly calculates dynamic cycle degree steps on non-heptatonic scales (N != 7)', () => {
+    // 8-tone Octatonic Scale
+    const octatonicScale = {
+      id: 'octatonic',
+      name: 'Whole-Half Diminished',
+      category: 'symmetric' as const,
+      intervals: [0, 2, 3, 5, 6, 8, 9, 11], // N = 8
+      color: '#3b82f6',
+    };
+
+    const c7Down = CYCLE_MOVES.find((m) => m.id === 'c7_down')!;
+    const chords = generateRailChords(0, octatonicScale, [c7Down], 'S5', 5);
+
+    // In N = 8, C7 down delta is -(7 - 1) = -6 = +2 (mod 8)
+    // Degree indices should advance: 0 -> 2 -> 4 -> 6 -> 0
+    expect(chords.map((c) => c.degreeIndex)).toEqual([0, 2, 4, 6, 0]);
+  });
 });
