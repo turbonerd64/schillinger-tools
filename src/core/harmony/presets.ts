@@ -1,9 +1,19 @@
 import { ChordStructureType, CycleMove, CYCLE_MOVES, HarmonySystemType } from './engine';
 
+export type HarmonyPresetCategory =
+  | 'Diatonic Cycle'
+  | 'Compound / Cadential'
+  | 'Symmetric Root System'
+  | 'Composer Style'
+  | 'Recurrence Cycle'
+  | 'Diatonic Cadence'
+  | 'Type II Invariant'
+  | 'Type III Symmetric';
+
 export interface HarmonyCyclePreset {
   id: string;
   name: string;
-  category: 'Diatonic Cycle' | 'Compound / Cadential' | 'Symmetric Root System';
+  category: HarmonyPresetCategory;
   description: string;
   defaultScale: string;
   defaultScaleId: string;
@@ -183,6 +193,208 @@ export const SCHILLINGER_HARMONY_PRESETS: HarmonyCyclePreset[] = [
       { label: 'C2 (⁶√2)', semitoneOffset: 2 },
     ],
   },
+
+  // 4. Composer Style (Wagner, Bach, Beethoven)
+  {
+    id: 'wagner_parsifal',
+    name: "Wagner's Parsifal Cycle",
+    category: 'Composer Style',
+    description: "Continuous mediant fall ([C3↓]) from Wagner's Parsifal with rich, chromatic voice leading (p. 373, Fig. 19)",
+    defaultScale: 'Ionian (Major)',
+    defaultScaleId: 'ionian',
+    chordStructure: 'S7',
+    totalChords: 8,
+    cycleFormula: [
+      { label: 'C3 ↓', stepOffset: 5 },
+    ],
+  },
+  {
+    id: 'grail_cadence',
+    name: 'Grail Combined Cadence',
+    category: 'Composer Style',
+    description: 'Wagnerian Grail motif cadence via threefold descending thirds closing to tonic: I → VI → III → I (p. 373, Fig. 21)',
+    defaultScale: 'Ionian (Major)',
+    defaultScaleId: 'ionian',
+    chordStructure: 'S5',
+    totalChords: 4,
+    cycleFormula: [
+      { label: 'C3 ↓', stepOffset: 5 },
+      { label: 'C3 ↓', stepOffset: 4 },
+      { label: 'C3 ↓', stepOffset: 5 },
+    ],
+  },
+  {
+    id: 'bach_contrapuntal',
+    name: "Bach's Contrapuntal Step",
+    category: 'Composer Style',
+    description: "Bach's compound cycle pairing two ascending steps with a descending fifth cadence: [C7↓, C7↓, C5↓] (p. 374, Fig. 22)",
+    defaultScale: 'Ionian (Major)',
+    defaultScaleId: 'ionian',
+    chordStructure: 'S7',
+    totalChords: 8,
+    cycleFormula: [
+      { label: 'C7 ↓ (Step ↑)', stepOffset: 1 },
+      { label: 'C7 ↓ (Step ↑)', stepOffset: 1 },
+      { label: 'C5 ↓', stepOffset: 3 },
+    ],
+  },
+  {
+    id: 'beethoven_dominant_drive',
+    name: 'Beethoven Dominant Drive',
+    category: 'Composer Style',
+    description: 'Relentless circle-of-fifths drive ([C5↓] continuous) propelling forward momentum and dominant tension resolution (p. 374)',
+    defaultScale: 'Ionian (Major)',
+    defaultScaleId: 'ionian',
+    chordStructure: 'S7',
+    totalChords: 8,
+    cycleFormula: [
+      { label: 'C5 ↓', stepOffset: 3 },
+    ],
+  },
+
+  // 5. Recurrence & Resultant Cycles (Closed Diatonic Permutations)
+  {
+    id: 'binomial_2c5_c7',
+    name: 'Binomial 2C5 + C7',
+    category: 'Recurrence Cycle',
+    description: 'Schillinger binomial recurrence cycle combining two fifth falls with a step shift; closes in 21 chords (p. 365, Fig. 5)',
+    defaultScale: 'Ionian (Major)',
+    defaultScaleId: 'ionian',
+    chordStructure: 'S7',
+    totalChords: 21,
+    cycleFormula: [
+      { label: 'C5 ↓', stepOffset: 3 },
+      { label: 'C5 ↓', stepOffset: 3 },
+      { label: 'C7 ↓ (Step ↑)', stepOffset: 1 },
+    ],
+  },
+  {
+    id: 'binomial_3c5_2c7',
+    name: 'Binomial 3C5 + 2C7',
+    category: 'Recurrence Cycle',
+    description: 'Schillinger 5-move binomial recurrence cycle (3C5 + 2C7) spanning 35 chords to achieve complete diatonic closure (p. 365, Fig. 5)',
+    defaultScale: 'Ionian (Major)',
+    defaultScaleId: 'ionian',
+    chordStructure: 'S7',
+    totalChords: 35,
+    cycleFormula: [
+      { label: 'C5 ↓', stepOffset: 3 },
+      { label: 'C5 ↓', stepOffset: 3 },
+      { label: 'C5 ↓', stepOffset: 3 },
+      { label: 'C7 ↓ (Step ↑)', stepOffset: 1 },
+      { label: 'C7 ↓ (Step ↑)', stepOffset: 1 },
+    ],
+  },
+  {
+    id: 'trinomial_4c3_c5_3c7',
+    name: 'Trinomial 4C3 + C5 + 3C7',
+    category: 'Recurrence Cycle',
+    description: 'Schillinger 8-move trinomial cycle (4C3 + C5 + 3C7) spanning 56 chords to complete a full permutation matrix (p. 367, Fig. 8)',
+    defaultScale: 'Ionian (Major)',
+    defaultScaleId: 'ionian',
+    chordStructure: 'S7',
+    totalChords: 56,
+    cycleFormula: [
+      { label: 'C3 ↓', stepOffset: 5 },
+      { label: 'C3 ↓', stepOffset: 5 },
+      { label: 'C3 ↓', stepOffset: 5 },
+      { label: 'C3 ↓', stepOffset: 5 },
+      { label: 'C5 ↓', stepOffset: 3 },
+      { label: 'C7 ↓ (Step ↑)', stepOffset: 1 },
+      { label: 'C7 ↓ (Step ↑)', stepOffset: 1 },
+      { label: 'C7 ↓ (Step ↑)', stepOffset: 1 },
+    ],
+  },
+  {
+    id: 'resultant_70_chord',
+    name: 'Resultant 70-Chord Cycle',
+    category: 'Recurrence Cycle',
+    description: 'Schillinger master 10-move resultant recurrence cycle; requires 7 full revolutions (70 chords) to achieve complete diatonic closure (p. 367, Fig. 9)',
+    defaultScale: 'Ionian (Major)',
+    defaultScaleId: 'ionian',
+    chordStructure: 'S7',
+    totalChords: 70,
+    cycleFormula: [
+      { label: 'C7 ↓ (Step ↑)', stepOffset: 1 },
+      { label: 'C7 ↓ (Step ↑)', stepOffset: 1 },
+      { label: 'C3 ↓', stepOffset: 5 },
+      { label: 'C3 ↓', stepOffset: 5 },
+      { label: 'C5 ↓', stepOffset: 3 },
+      { label: 'C7 ↓ (Step ↑)', stepOffset: 1 },
+      { label: 'C3 ↓', stepOffset: 5 },
+      { label: 'C3 ↓', stepOffset: 5 },
+      { label: 'C5 ↓', stepOffset: 3 },
+      { label: 'C5 ↓', stepOffset: 3 },
+    ],
+  },
+
+  // 6. Diatonic Cadences
+  {
+    id: 'classical_full_cadence',
+    name: 'Classical Full Cadence',
+    category: 'Diatonic Cadence',
+    description: 'Fundamental classical functional cadence: Tonic → Subdominant → Dominant → Tonic (I → IV → V → I) (p. 363)',
+    defaultScale: 'Ionian (Major)',
+    defaultScaleId: 'ionian',
+    chordStructure: 'S5',
+    totalChords: 4,
+    cycleFormula: [
+      { label: 'C5 ↑ (to IV)', stepOffset: 3 },
+      { label: 'C5 ↓ (to V)', stepOffset: 1 },
+      { label: 'C5 ↓ (to I)', stepOffset: 3 },
+    ],
+  },
+
+  // 7. Type II Invariant Structures (Diatonic-Symmetric)
+  {
+    id: 'impressionist_parallel_maj7',
+    name: 'Impressionist Parallel Maj7s',
+    category: 'Type II Invariant',
+    description: 'Type II Diatonic-Symmetric: Roots move along descending diatonic thirds ([C3↓]) with an invariant Major 7th structure (Ch. 4, p. 393)',
+    defaultScale: 'Ionian (Major)',
+    defaultScaleId: 'ionian',
+    chordStructure: 'S7',
+    harmonySystem: 'diatonic_symmetric',
+    invariantStructureQuality: 'maj7',
+    totalChords: 8,
+    cycleFormula: [
+      { label: 'C3 ↓', stepOffset: 5 },
+    ],
+  },
+  {
+    id: 'hard_bop_minor_9ths',
+    name: 'Hard-Bop Invariant Minor 9ths',
+    category: 'Type II Invariant',
+    description: 'Type II Diatonic-Symmetric: Invariant minor ninth structures (m9/S9) propelled through the circle of fifths ([C5↓]) (Ch. 4, p. 393)',
+    defaultScale: 'Dorian',
+    defaultScaleId: 'dorian',
+    chordStructure: 'S9',
+    harmonySystem: 'diatonic_symmetric',
+    invariantStructureQuality: 'm',
+    totalChords: 8,
+    cycleFormula: [
+      { label: 'C5 ↓', stepOffset: 3 },
+    ],
+  },
+
+  // 8. Type III Symmetric
+  {
+    id: 'petrushka_tritone_axis',
+    name: 'Petrushka Tritone Axis',
+    category: 'Type III Symmetric',
+    description: "Stravinsky's Type III symmetric tritone axis (√2 C ↔ F#) with dominant auxiliary turnaround chords (Ch. 5, p. 397)",
+    defaultScale: 'Ionian (Major)',
+    defaultScaleId: 'ionian',
+    chordStructure: 'S7',
+    harmonySystem: 'symmetric',
+    invariantStructureQuality: '7',
+    totalChords: 6,
+    cycleFormula: [
+      { label: 'C6 (√2)', semitoneOffset: 6 },
+      { label: 'V Aux (↑5th)', semitoneOffset: 7 },
+      { label: 'Tonic Return (↓5th)', semitoneOffset: 5 },
+    ],
+  },
 ];
 
 export function getHarmonyPresetById(id: string): HarmonyCyclePreset | undefined {
@@ -196,7 +408,7 @@ export function getCycleMovesForPreset(preset: HarmonyCyclePreset): CycleMove[] 
   return preset.cycleFormula.map((step, idx) => {
     if (step.semitoneOffset !== undefined) {
       const matched = CYCLE_MOVES.find((m) => m.semitoneOffset === step.semitoneOffset);
-      if (matched) return matched;
+      if (matched) return { ...matched, name: step.label, alias: step.label };
       return {
         id: `sym_step_${idx}`,
         name: step.label,
@@ -206,7 +418,7 @@ export function getCycleMovesForPreset(preset: HarmonyCyclePreset): CycleMove[] 
       };
     }
     const matched = CYCLE_MOVES.find((m) => m.stepOffset === step.stepOffset);
-    if (matched) return matched;
+    if (matched) return { ...matched, name: step.label, alias: step.label };
     return {
       id: `step_${idx}`,
       name: step.label,

@@ -61,7 +61,13 @@ export const FormulaBar: React.FC<FormulaBarProps> = ({
 
   const diatonicPresets = SCHILLINGER_HARMONY_PRESETS.filter((p) => p.category === 'Diatonic Cycle');
   const compoundPresets = SCHILLINGER_HARMONY_PRESETS.filter((p) => p.category === 'Compound / Cadential');
-  const symmetricPresets = SCHILLINGER_HARMONY_PRESETS.filter((p) => p.category === 'Symmetric Root System');
+  const composerPresets = SCHILLINGER_HARMONY_PRESETS.filter((p) => p.category === 'Composer Style');
+  const recurrencePresets = SCHILLINGER_HARMONY_PRESETS.filter((p) => p.category === 'Recurrence Cycle');
+  const cadencePresets = SCHILLINGER_HARMONY_PRESETS.filter((p) => p.category === 'Diatonic Cadence');
+  const invariantPresets = SCHILLINGER_HARMONY_PRESETS.filter((p) => p.category === 'Type II Invariant');
+  const symmetricPresets = SCHILLINGER_HARMONY_PRESETS.filter(
+    (p) => p.category === 'Symmetric Root System' || p.category === 'Type III Symmetric'
+  );
 
   const diatonicMoves = CYCLE_MOVES.filter((m) => m.system === 'diatonic');
   const symmetricMoves = CYCLE_MOVES.filter((m) => m.system === 'symmetric');
@@ -105,6 +111,41 @@ export const FormulaBar: React.FC<FormulaBarProps> = ({
               className="bg-white border-2 border-slate-900 rounded-xl px-3 py-1.5 text-xs sm:text-sm font-mono font-bold text-slate-900 shadow-2xs hover:border-[#c84b31] focus:outline-none focus:ring-2 focus:ring-[#c84b31] cursor-pointer max-w-[280px] sm:max-w-xs truncate"
             >
               <option value="custom">-- Custom Formula --</option>
+              <optgroup label="Composer Style (Wagner, Bach, Beethoven)">
+                {composerPresets.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </optgroup>
+              <optgroup label="Recurrence & Resultant Cycles (21-70 Chords)">
+                {recurrencePresets.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </optgroup>
+              <optgroup label="Diatonic Cadences">
+                {cadencePresets.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </optgroup>
+              <optgroup label="Type II Invariant Structures">
+                {invariantPresets.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </optgroup>
+              <optgroup label="Type III Symmetric Systems">
+                {symmetricPresets.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </optgroup>
               <optgroup label="Diatonic Cycles">
                 {diatonicPresets.map((p) => (
                   <option key={p.id} value={p.id}>
@@ -114,13 +155,6 @@ export const FormulaBar: React.FC<FormulaBarProps> = ({
               </optgroup>
               <optgroup label="Compound / Cadential">
                 {compoundPresets.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </optgroup>
-              <optgroup label="Symmetric Root Systems">
-                {symmetricPresets.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.name}
                   </option>
@@ -218,7 +252,7 @@ export const FormulaBar: React.FC<FormulaBarProps> = ({
           <input
             type="range"
             min={4}
-            max={32}
+            max={80}
             value={totalChordsCount}
             onChange={(e) => {
               setTotalChordsCount(parseInt(e.target.value));

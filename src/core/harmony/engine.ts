@@ -224,20 +224,30 @@ export function generateRailChords(
     if (isSymmetricStep) {
       // Type III Symmetric System: Root moves in chromatic semitone space dividing octave by roots of 2
       rootPC = currentPitchClass;
-      const deltas = invariantStructureQuality === 'm' || invariantStructureQuality === 'm7'
-        ? (structure === 'S5' ? [0, 3, 7] : structure === 'S7' ? [0, 3, 7, 10] : [0, 3, 7, 10, 14])
-        : invariantStructureQuality === '7'
-        ? (structure === 'S5' ? [0, 4, 7] : [0, 4, 7, 10])
-        : (structure === 'S5' ? [0, 4, 7] : structure === 'S7' ? [0, 4, 7, 11] : [0, 4, 7, 11, 14]);
+      let deltas: number[];
+      if (invariantStructureQuality === 'dim7' || invariantStructureQuality === 'dim') {
+        deltas = structure === 'S5' ? [0, 3, 6] : structure === 'S7' ? [0, 3, 6, 9] : [0, 1, 3, 6, 9];
+      } else if (invariantStructureQuality === 'm' || invariantStructureQuality === 'm7') {
+        deltas = structure === 'S5' ? [0, 3, 7] : structure === 'S7' ? [0, 3, 7, 10] : [0, 3, 7, 10, 14];
+      } else if (invariantStructureQuality === '7') {
+        deltas = structure === 'S5' ? [0, 4, 7] : structure === 'S7' ? [0, 4, 7, 10] : [0, 4, 7, 10, 14];
+      } else {
+        deltas = structure === 'S5' ? [0, 4, 7] : structure === 'S7' ? [0, 4, 7, 11] : [0, 4, 7, 11, 14];
+      }
       pitchClasses = deltas.map((d) => (rootPC + d) % 12);
     } else if (harmonySystem === 'diatonic_symmetric') {
       // Type II Diatonic-Symmetric System: Root moves along diatonic scale degrees with invariant chord structure
       rootPC = scalePitches[currentDegree];
-      const deltas = invariantStructureQuality === 'm' || invariantStructureQuality === 'm7'
-        ? (structure === 'S5' ? [0, 3, 7] : structure === 'S7' ? [0, 3, 7, 10] : [0, 3, 7, 10, 14])
-        : invariantStructureQuality === '7'
-        ? (structure === 'S5' ? [0, 4, 7] : [0, 4, 7, 10])
-        : (structure === 'S5' ? [0, 4, 7] : structure === 'S7' ? [0, 4, 7, 11] : [0, 4, 7, 11, 14]);
+      let deltas: number[];
+      if (invariantStructureQuality === 'dim7' || invariantStructureQuality === 'dim') {
+        deltas = structure === 'S5' ? [0, 3, 6] : structure === 'S7' ? [0, 3, 6, 9] : [0, 1, 3, 6, 9];
+      } else if (invariantStructureQuality === 'm' || invariantStructureQuality === 'm7') {
+        deltas = structure === 'S5' ? [0, 3, 7] : structure === 'S7' ? [0, 3, 7, 10] : [0, 3, 7, 10, 14];
+      } else if (invariantStructureQuality === '7') {
+        deltas = structure === 'S5' ? [0, 4, 7] : structure === 'S7' ? [0, 4, 7, 10] : [0, 4, 7, 10, 14];
+      } else {
+        deltas = structure === 'S5' ? [0, 4, 7] : structure === 'S7' ? [0, 4, 7, 11] : [0, 4, 7, 11, 14];
+      }
       pitchClasses = deltas.map((d) => (rootPC + d) % 12);
     } else {
       // Type I Diatonic System: Tertian chords built strictly from parent scale degrees
@@ -316,11 +326,16 @@ export function rebuildChordWithStructure(
   const rootPC = chord.rootPitchClass;
 
   if (harmonySystem === 'symmetric' || harmonySystem === 'diatonic_symmetric') {
-    const deltas = invariantStructureQuality === 'm' || invariantStructureQuality === 'm7'
-      ? (newStructure === 'S5' ? [0, 3, 7] : newStructure === 'S7' ? [0, 3, 7, 10] : [0, 3, 7, 10, 14])
-      : invariantStructureQuality === '7'
-      ? (newStructure === 'S5' ? [0, 4, 7] : newStructure === 'S7' ? [0, 4, 7, 10] : [0, 4, 7, 10, 14])
-      : (newStructure === 'S5' ? [0, 4, 7] : newStructure === 'S7' ? [0, 4, 7, 11] : [0, 4, 7, 11, 14]);
+    let deltas: number[];
+    if (invariantStructureQuality === 'dim7' || invariantStructureQuality === 'dim') {
+      deltas = newStructure === 'S5' ? [0, 3, 6] : newStructure === 'S7' ? [0, 3, 6, 9] : [0, 1, 3, 6, 9];
+    } else if (invariantStructureQuality === 'm' || invariantStructureQuality === 'm7') {
+      deltas = newStructure === 'S5' ? [0, 3, 7] : newStructure === 'S7' ? [0, 3, 7, 10] : [0, 3, 7, 10, 14];
+    } else if (invariantStructureQuality === '7') {
+      deltas = newStructure === 'S5' ? [0, 4, 7] : newStructure === 'S7' ? [0, 4, 7, 10] : [0, 4, 7, 10, 14];
+    } else {
+      deltas = newStructure === 'S5' ? [0, 4, 7] : newStructure === 'S7' ? [0, 4, 7, 11] : [0, 4, 7, 11, 14];
+    }
     pitchClasses = deltas.map((d) => (rootPC + d) % 12);
   } else {
     // Type I Diatonic
