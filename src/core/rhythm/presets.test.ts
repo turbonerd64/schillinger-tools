@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { RHYTHM_PRESETS, getPresetById, calculatePresetResultant } from './presets';
 
 describe('Rhythm Presets and Genre Profiles', () => {
-  it('loads all 14 rhythmic presets with valid metadata', () => {
-    expect(RHYTHM_PRESETS.length).toBe(14);
+  it('loads all 21 rhythmic presets with valid metadata', () => {
+    expect(RHYTHM_PRESETS.length).toBe(21);
     RHYTHM_PRESETS.forEach((preset) => {
       expect(preset.name).toBeTruthy();
       expect(preset.genre).toBeTruthy();
@@ -47,6 +47,30 @@ describe('Rhythm Presets and Genre Profiles', () => {
       const res = calculatePresetResultant(swing);
       expect(res.totalLength).toBe(9);
       expect(res.durations).toEqual([4, 1, 4]);
+    }
+
+    const rock = getPresetById('rock_straight_8');
+    expect(rock).toBeDefined();
+    if (rock) {
+      const res = calculatePresetResultant(rock);
+      expect(res.totalLength).toBe(16);
+      expect(res.durations).toEqual([2, 2, 2, 2, 2, 2, 2, 2]);
+    }
+
+    const blues = getPresetById('blues_shuffle');
+    expect(blues).toBeDefined();
+    if (blues) {
+      const res = calculatePresetResultant(blues);
+      expect(res.totalLength).toBe(12);
+      expect(res.durations).toEqual([2, 1, 2, 1, 2, 1, 2, 1]);
+    }
+
+    const country = getPresetById('country_boom_chick');
+    expect(country).toBeDefined();
+    if (country) {
+      const res = calculatePresetResultant(country);
+      expect(res.totalLength).toBe(16);
+      expect(res.accentIndices).toEqual([1, 3, 5, 7]);
     }
   });
 });

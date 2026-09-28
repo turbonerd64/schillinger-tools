@@ -42,6 +42,13 @@ export const UnifiedRhythmControls: React.FC<UnifiedRhythmControlsProps> = ({
   const activePreset = getPresetById(selectedPresetId);
 
   const fundamentalPresets = RHYTHM_PRESETS.filter((p) => p.genre === 'Polyrhythmic Fundamental');
+  const rockCountryPresets = RHYTHM_PRESETS.filter(
+    (p) =>
+      p.genre === 'Rock & Pop' ||
+      p.genre === 'Rock & Blues' ||
+      p.genre === 'Country & Bluegrass' ||
+      p.genre === 'Country & Folk'
+  );
   const afroCubanPresets = RHYTHM_PRESETS.filter((p) => p.genre === 'Afro-Cuban / Latin');
   const jazzDancePresets = RHYTHM_PRESETS.filter((p) => p.genre === 'Early Jazz / Dance' || p.genre === 'Swing / Big Band' || p.genre === 'Tango / Argentine');
   const fractionalPresets = RHYTHM_PRESETS.filter((p) => p.genre === 'Classical / Pedagogical');
@@ -121,6 +128,13 @@ export const UnifiedRhythmControls: React.FC<UnifiedRhythmControlsProps> = ({
               <option value="custom">-- Custom Setup --</option>
               <optgroup label="Polyrhythmic Fundamentals">
                 {fundamentalPresets.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </optgroup>
+              <optgroup label="Rock, Country, Blues &amp; Pop">
+                {rockCountryPresets.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.name}
                   </option>

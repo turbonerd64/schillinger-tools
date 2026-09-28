@@ -43,10 +43,43 @@ export const GrooveControlStrip: React.FC<GrooveControlStripProps> = ({
 
   // Group presets for dropdown
   const livePreset = groovePresets.find((p) => p.id === 'live_rhythm');
-  const syncopatedPresets = groovePresets.filter((p) => p.id !== 'live_rhythm' && p.category === 'Syncopated');
-  const standardPresets = groovePresets.filter((p) => p.id !== 'live_rhythm' && p.category === 'Standard');
-  const symmetricPresets = groovePresets.filter((p) => p.id !== 'live_rhythm' && p.category === 'Symmetric');
-  const complexPresets = groovePresets.filter((p) => p.id !== 'live_rhythm' && p.category === 'Complex');
+  const rockCountryPresets = groovePresets.filter(
+    (p) =>
+      p.id !== 'live_rhythm' &&
+      (p.description.toLowerCase().includes('rock') ||
+        p.description.toLowerCase().includes('country') ||
+        p.description.toLowerCase().includes('blues') ||
+        p.name.toLowerCase().includes('rock') ||
+        p.name.toLowerCase().includes('country') ||
+        p.name.toLowerCase().includes('waltz') ||
+        p.name.toLowerCase().includes('shuffle') ||
+        p.name.toLowerCase().includes('four-on-the-floor') ||
+        p.name.toLowerCase().includes('diddley'))
+  );
+  const syncopatedPresets = groovePresets.filter(
+    (p) =>
+      p.id !== 'live_rhythm' &&
+      !rockCountryPresets.some((rc) => rc.id === p.id) &&
+      p.category === 'Syncopated'
+  );
+  const standardPresets = groovePresets.filter(
+    (p) =>
+      p.id !== 'live_rhythm' &&
+      !rockCountryPresets.some((rc) => rc.id === p.id) &&
+      p.category === 'Standard'
+  );
+  const symmetricPresets = groovePresets.filter(
+    (p) =>
+      p.id !== 'live_rhythm' &&
+      !rockCountryPresets.some((rc) => rc.id === p.id) &&
+      p.category === 'Symmetric'
+  );
+  const complexPresets = groovePresets.filter(
+    (p) =>
+      p.id !== 'live_rhythm' &&
+      !rockCountryPresets.some((rc) => rc.id === p.id) &&
+      p.category === 'Complex'
+  );
 
   // Texture styles available during groove playback
   const grooveStylesList: Array<{ id: GrooveStyle; label: string; desc: string }> = [
@@ -103,6 +136,15 @@ export const GrooveControlStrip: React.FC<GrooveControlStripProps> = ({
             {livePreset && (
               <optgroup label="Coupled to Rhythm Tab">
                 <option value={livePreset.id}>✨ {livePreset.name}</option>
+              </optgroup>
+            )}
+            {rockCountryPresets.length > 0 && (
+              <optgroup label="Rock, Country, Blues &amp; Pop">
+                {rockCountryPresets.map((preset) => (
+                  <option key={preset.id} value={preset.id}>
+                    {preset.name}
+                  </option>
+                ))}
               </optgroup>
             )}
             {syncopatedPresets.length > 0 && (
