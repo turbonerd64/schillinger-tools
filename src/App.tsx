@@ -87,6 +87,11 @@ export function App() {
   const [isPlayingHarmony, setIsPlayingHarmony] = useState<boolean>(false);
   const [harmonyIndex, setHarmonyIndex] = useState<number>(0);
   const [harmonyCount, setHarmonyCount] = useState<number>(8);
+  const [isStraightHarmony, setIsStraightHarmony] = useState<boolean>(false);
+
+  const handleToggleStraightHarmony = useCallback(() => {
+    setIsStraightHarmony((prev) => !prev);
+  }, []);
 
 
   // Compute master Schillinger resultant (standard or custom genre preset)
@@ -218,6 +223,8 @@ export function App() {
           setMasterVolume(vol);
           audioService.setMasterVolume(vol);
         }}
+        bpm={bpm}
+        onBpmChange={handleBpmChange}
         isPlayingRhythm={isPlayingRhythm}
         onPlayRhythm={handlePlayRhythm}
         onPauseRhythm={handlePauseRhythm}
@@ -232,6 +239,8 @@ export function App() {
         onStepForwardHarmony={handleStepForwardHarmony}
         harmonyCurrentIndex={harmonyIndex}
         harmonyTotalChords={harmonyCount}
+        isStraightHarmony={isStraightHarmony}
+        onToggleStraightHarmony={handleToggleStraightHarmony}
       />
 
       {/* Main Content Area */}
@@ -251,8 +260,6 @@ export function App() {
               metricGrouping={metricGrouping}
               setMetricGrouping={setMetricGrouping}
               totalLength={resultant.totalLength}
-              bpm={bpm}
-              setBpm={handleBpmChange}
               variations={variations}
               setVariations={setVariations}
               selectedPresetId={selectedPresetId}
@@ -292,6 +299,9 @@ export function App() {
             selectedChordIndex={harmonyIndex}
             setSelectedChordIndex={setHarmonyIndex}
             onChordCountUpdate={(count) => setHarmonyCount(count)}
+            bpm={bpm}
+            isStraightHarmony={isStraightHarmony}
+            onToggleStraightHarmony={handleToggleStraightHarmony}
             rhythmParams={{
               a,
               b,

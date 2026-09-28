@@ -9,6 +9,9 @@ import {
   SkipBack,
   SkipForward,
   Volume2,
+  VolumeX,
+  Gauge,
+  Activity,
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -18,6 +21,10 @@ interface HeaderProps {
   // Master Volume shared across all tools
   masterVolume: number;
   setMasterVolume: (vol: number) => void;
+
+  // Global Shared Tempo
+  bpm: number;
+  onBpmChange: (bpm: number) => void;
 
   // Rhythm Transport
   isPlayingRhythm: boolean;
@@ -36,6 +43,10 @@ interface HeaderProps {
   onStepForwardHarmony: () => void;
   harmonyCurrentIndex: number;
   harmonyTotalChords: number;
+
+  // Harmony Straight Mode (Mute Rhythm)
+  isStraightHarmony?: boolean;
+  onToggleStraightHarmony?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -43,6 +54,8 @@ export const Header: React.FC<HeaderProps> = ({
   setActiveTab,
   masterVolume,
   setMasterVolume,
+  bpm,
+  onBpmChange,
   isPlayingRhythm,
   onPlayRhythm,
   onPauseRhythm,
@@ -57,6 +70,8 @@ export const Header: React.FC<HeaderProps> = ({
   onStepForwardHarmony,
   harmonyCurrentIndex,
   harmonyTotalChords,
+  isStraightHarmony = false,
+  onToggleStraightHarmony,
 }) => {
   return (
     <>
@@ -74,11 +89,11 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Desktop Global Taskbar Transport & Master Volume Control (Hidden on mobile) */}
           <div className="hidden sm:flex items-center gap-2 bg-slate-50 px-2.5 py-1.5 rounded-2xl border-2 border-slate-900 shadow-2xs">
-            {/* Standardized Transport Section with Fixed Width */}
-            <div className="w-[195px] sm:w-[220px] flex items-center justify-between">
+            {/* Standardized Transport Section */}
+            <div className="flex items-center justify-between">
               {/* Rhythm Studio Transport Controls */}
               {activeTab === 'rhythm' && (
-                <div className="flex items-center justify-between w-full">
+                <div className="flex items-center gap-2">
                   <div className="flex items-center gap-1.5">
                     <button
                       onClick={isPlayingRhythm ? onPauseRhythm : onPlayRhythm}
@@ -100,7 +115,7 @@ export const Header: React.FC<HeaderProps> = ({
                     </button>
                   </div>
 
-                  <span className="text-xs font-mono font-extrabold text-slate-900 pl-1 text-right">
+                  <span className="text-xs font-mono font-extrabold text-slate-900 px-1 text-right">
                     {rhythmActiveTick}/{rhythmTotalLength}t
                   </span>
                 </div>
@@ -108,7 +123,7 @@ export const Header: React.FC<HeaderProps> = ({
 
               {/* Harmony & Scales Transport Controls */}
               {activeTab === 'harmony' && (
-                <div className="flex items-center justify-between w-full">
+                <div className="flex items-center gap-2">
                   <div className="flex items-center gap-1">
                     <button
                       onClick={onStepBackHarmony}
@@ -138,7 +153,36 @@ export const Header: React.FC<HeaderProps> = ({
                     </button>
                   </div>
 
-                  <span className="text-xs font-mono font-extrabold text-slate-900 pl-1 text-right">
+                  {/* Disable / Mute Rhythm Toggle Button */}
+                  {onToggleStraightHarmony && (
+                    <button
+                      onClick={onToggleStraightHarmony}
+                      className={`px-2.5 py-1.5 rounded-xl font-mono text-xs font-extrabold flex items-center gap-1.5 border-2 transition-all active:scale-95 shadow-2xs ${
+                        isStraightHarmony
+                          ? 'bg-amber-100 border-amber-600 text-amber-900 hover:bg-amber-200'
+                          : 'bg-white border-slate-300 text-slate-700 hover:border-slate-800'
+                      }`}
+                      title={
+                        isStraightHarmony
+                          ? 'Rhythm is Muted: Chords play as straight sustained pads. Click to re-enable groove.'
+                          : 'Rhythm is Active: Chords groove to Schillinger resultant. Click to mute rhythm and play straight.'
+                      }
+                    >
+                      {isStraightHarmony ? (
+                        <>
+                          <VolumeX className="w-3.5 h-3.5 text-amber-700" />
+                          <span>Straight</span>
+                        </>
+                      ) : (
+                        <>
+                          <Activity className="w-3.5 h-3.5 text-[#c84b31]" />
+                          <span>Groove</span>
+                        </>
+                      )}
+                    </button>
+                  )}
+
+                  <span className="text-xs font-mono font-extrabold text-slate-900 px-1 text-right">
                     {harmonyCurrentIndex + 1}/{harmonyTotalChords}
                   </span>
                 </div>
@@ -146,15 +190,45 @@ export const Header: React.FC<HeaderProps> = ({
 
               {/* Theory Primer Placeholder / Info */}
               {activeTab === 'theory' && (
-                <div className="flex items-center justify-between w-full text-slate-500 text-xs font-mono font-bold px-1">
-                  <span>Theory Guide</span>
-                  <span>Reference</span>
+                <div className="flex items-center justify-between text-slate-500 text-xs font-mono font-bold px-2">
+                  <span>Theory Guide &amp; Formulas</span>
                 </div>
               )}
             </div>
 
+            {/* Global Shared Tempo Control (One tempo for both Rhythm and Harmony!) */}
+            <div className="flex items-center gap-1.5 border-l-2 border-slate-200 pl-2.5">
+              <Gauge className="w-4 h-4 text-[#c84b31]" />
+              <button
+                onClick={() => onBpmChange(bpm - 5)}
+                className="w-6 h-6 rounded-lg bg-white border border-slate-300 text-xs font-bold text-slate-700 hover:border-slate-900 active:scale-95 flex items-center justify-center shadow-2xs select-none"
+                title="Decrease Tempo by 5 BPM"
+              >
+                -
+              </button>
+              <div className="flex items-center gap-1 font-mono font-extrabold text-xs text-slate-900 bg-white px-2 py-1 rounded-lg border border-slate-300 shadow-2xs">
+                <input
+                  type="number"
+                  min={30}
+                  max={300}
+                  value={bpm}
+                  onChange={(e) => onBpmChange(parseInt(e.target.value, 10) || 100)}
+                  className="w-9 text-center font-bold text-slate-900 focus:outline-none"
+                  title="Global BPM Input"
+                />
+                <span className="text-[10px] text-slate-400 font-bold uppercase">BPM</span>
+              </div>
+              <button
+                onClick={() => onBpmChange(bpm + 5)}
+                className="w-6 h-6 rounded-lg bg-white border border-slate-300 text-xs font-bold text-slate-700 hover:border-slate-900 active:scale-95 flex items-center justify-center shadow-2xs select-none"
+                title="Increase Tempo by 5 BPM"
+              >
+                +
+              </button>
+            </div>
+
             {/* Master Volume Slider (Consistent across desktop tabs) */}
-            <div className="flex items-center gap-2 border-l-2 border-slate-200 pl-3">
+            <div className="flex items-center gap-2 border-l-2 border-slate-200 pl-2.5">
               <Volume2 className="w-4 h-4 text-[#c84b31]" />
               <input
                 type="range"
@@ -163,14 +237,15 @@ export const Header: React.FC<HeaderProps> = ({
                 step={0.05}
                 value={masterVolume}
                 onChange={(e) => setMasterVolume(parseFloat(e.target.value))}
-                className="w-20 h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#c84b31]"
+                className="w-16 sm:w-20 h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#c84b31]"
                 title="Master Volume"
               />
-              <span className="text-xs font-mono font-bold text-slate-700 w-8 text-right">
+              <span className="text-xs font-mono font-bold text-slate-700 w-7 text-right">
                 {Math.round(masterVolume * 100)}%
               </span>
             </div>
           </div>
+
 
           {/* Studio Module Navigation Tabs (On mobile, this is the only element in the header!) */}
           <nav className="flex items-center bg-slate-100 p-1 sm:p-1.5 rounded-xl sm:rounded-2xl border-2 border-slate-900 justify-center">

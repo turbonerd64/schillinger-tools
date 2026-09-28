@@ -28,8 +28,6 @@ interface FormulaBarProps {
   setStructure: (s: ChordStructureType) => void;
   totalChordsCount: number;
   setTotalChordsCount: (count: number) => void;
-  bpm: number;
-  setBpm: (bpm: number) => void;
   selectedPresetId: string;
   onSelectPreset: (presetId: string) => void;
   harmonySystem: HarmonySystemType;
@@ -49,8 +47,6 @@ export const FormulaBar: React.FC<FormulaBarProps> = ({
   setStructure,
   totalChordsCount,
   setTotalChordsCount,
-  bpm,
-  setBpm,
   selectedPresetId,
   onSelectPreset,
   harmonySystem,
@@ -60,6 +56,7 @@ export const FormulaBar: React.FC<FormulaBarProps> = ({
   voiceLeadingMode,
   setVoiceLeadingMode,
 }) => {
+
   const activePreset = getHarmonyPresetById(selectedPresetId);
 
   const diatonicPresets = SCHILLINGER_HARMONY_PRESETS.filter((p) => p.category === 'Diatonic Cycle');
@@ -179,7 +176,7 @@ export const FormulaBar: React.FC<FormulaBarProps> = ({
         </div>
 
         {/* Chord Structure */}
-        <div className="md:col-span-3 p-3.5 rounded-xl bg-slate-50 border-2 border-slate-200 space-y-2">
+        <div className="md:col-span-4 p-3.5 rounded-xl bg-slate-50 border-2 border-slate-200 space-y-2">
           <label className="text-xs sm:text-sm font-extrabold text-slate-800 uppercase tracking-wider block font-mono">
             Chord Density
           </label>
@@ -209,7 +206,7 @@ export const FormulaBar: React.FC<FormulaBarProps> = ({
         </div>
 
         {/* Progression Length */}
-        <div className="md:col-span-3 p-3.5 rounded-xl bg-slate-50 border-2 border-slate-200 space-y-2">
+        <div className="md:col-span-4 p-3.5 rounded-xl bg-slate-50 border-2 border-slate-200 space-y-2">
           <div className="flex items-center justify-between">
             <label className="text-xs sm:text-sm font-extrabold text-slate-800 uppercase tracking-wider font-mono">
               Progression Length
@@ -230,27 +227,8 @@ export const FormulaBar: React.FC<FormulaBarProps> = ({
             className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#c84b31]"
           />
         </div>
-
-        {/* Tempo */}
-        <div className="md:col-span-2 p-3.5 rounded-xl bg-slate-50 border-2 border-slate-200 space-y-2">
-          <div className="flex items-center justify-between">
-            <label className="text-xs sm:text-sm font-extrabold text-slate-800 uppercase tracking-wider font-mono">
-              Tempo
-            </label>
-            <span className="text-xs sm:text-sm font-mono font-extrabold text-slate-900 bg-white px-1.5 py-0.5 rounded border border-slate-300">
-              {bpm}
-            </span>
-          </div>
-          <input
-            type="range"
-            min={40}
-            max={200}
-            value={bpm}
-            onChange={(e) => setBpm(parseInt(e.target.value))}
-            className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#c84b31]"
-          />
-        </div>
       </div>
+
 
       {/* Schillinger System & Voice-Leading Controls */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4 p-4 rounded-xl bg-slate-50 border-2 border-slate-200">

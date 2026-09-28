@@ -10,6 +10,7 @@ import {
   Radio,
   Sparkles,
   Volume2,
+  VolumeX,
   Check,
 } from 'lucide-react';
 
@@ -22,6 +23,8 @@ interface GrooveControlStripProps {
   includePercussion: boolean;
   setIncludePercussion: (include: boolean) => void;
   activeGroove: HarmonyGroovePattern;
+  isStraightHarmony?: boolean;
+  onToggleStraightHarmony?: () => void;
 }
 
 export const GrooveControlStrip: React.FC<GrooveControlStripProps> = ({
@@ -33,6 +36,8 @@ export const GrooveControlStrip: React.FC<GrooveControlStripProps> = ({
   includePercussion,
   setIncludePercussion,
   activeGroove,
+  isStraightHarmony = false,
+  onToggleStraightHarmony,
 }) => {
   const stylesList: Array<{ id: GrooveStyle; label: string; desc: string }> = [
     {
@@ -59,6 +64,26 @@ export const GrooveControlStrip: React.FC<GrooveControlStripProps> = ({
 
   return (
     <div className="bg-white rounded-2xl border-2 border-slate-900 p-5 shadow-sm space-y-4">
+      {/* Straight Mode Banner if active */}
+      {isStraightHarmony && (
+        <div className="bg-amber-50 border-2 border-amber-300 rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs sm:text-sm font-mono text-amber-950 shadow-2xs">
+          <div className="flex items-center gap-2">
+            <VolumeX className="w-4 h-4 text-amber-600 shrink-0" />
+            <span>
+              <strong>Straight Mode (Rhythm Muted):</strong> Chords are playing as straight sustained pads without rhythmic groove pulses.
+            </span>
+          </div>
+          {onToggleStraightHarmony && (
+            <button
+              onClick={onToggleStraightHarmony}
+              className="px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-bold text-xs shadow-2xs transition-all active:scale-95 shrink-0"
+            >
+              Re-enable Groove
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Header Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b-2 border-slate-100 pb-3">
         <div className="flex items-center gap-2">

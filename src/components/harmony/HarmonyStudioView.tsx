@@ -48,8 +48,10 @@ interface HarmonyStudioViewProps {
     isReversed?: boolean;
     rotationOffset?: number;
   };
+  bpm: number;
+  isStraightHarmony?: boolean;
+  onToggleStraightHarmony?: () => void;
 }
-
 
 export const HarmonyStudioView: React.FC<HarmonyStudioViewProps> = ({
   isPlaying,
@@ -58,13 +60,15 @@ export const HarmonyStudioView: React.FC<HarmonyStudioViewProps> = ({
   setSelectedChordIndex,
   onChordCountUpdate,
   rhythmParams,
+  bpm,
+  isStraightHarmony = false,
+  onToggleStraightHarmony,
 }) => {
-
   const [tonicRoot, setTonicRoot] = useState<number>(0); // C
   const [structure, setStructure] = useState<ChordStructureType>('S7');
   const [totalChordsCount, setTotalChordsCount] = useState<number>(8);
-  const [bpm, setBpm] = useState<number>(100);
   const [harmonySystem, setHarmonySystem] = useState<HarmonySystemType>('diatonic');
+
   const [invariantQuality, setInvariantQuality] = useState<string>('maj7');
   const [voiceLeadingMode, setVoiceLeadingMode] = useState<VoiceLeadingMode>('greedy');
 
@@ -293,11 +297,14 @@ export const HarmonyStudioView: React.FC<HarmonyStudioViewProps> = ({
   useEffect(() => {
     if (!masterChords || masterChords.length === 0) return;
 
+    const effectiveStyle = isStraightHarmony ? 'sustained' : grooveStyle;
+    const effectivePercussion = isStraightHarmony ? false : includePercussion;
+
     const arrangement = generateProgressionArrangement(
       masterChords,
       activeGroove,
-      grooveStyle,
-      includePercussion
+      effectiveStyle,
+      effectivePercussion
     );
 
     const stepMap = new Map<number, {
@@ -341,7 +348,7 @@ export const HarmonyStudioView: React.FC<HarmonyStudioViewProps> = ({
       }
 
       let percInfo: { channel: 'a' | 'b' | 'c' | 'resultant' | 'accent'; isAccented: boolean } | undefined;
-      if (includePercussion && arrangement.tracks[2]) {
+      if (effectivePercussion && arrangement.tracks[2]) {
         const percNote = arrangement.tracks[2].notes.find((n) => n.tick === u);
         if (percNote) {
           const isAcc = percNote.pitches.includes(37) || percNote.pitches.includes(76);
@@ -362,7 +369,7 @@ export const HarmonyStudioView: React.FC<HarmonyStudioViewProps> = ({
     }
 
     audioService.loadHarmonySequence(arrangement.totalTimelineUnits, stepMap);
-  }, [masterChords, activeGroove, grooveStyle, includePercussion, bpm]);
+  }, [masterChords, activeGroove, grooveStyle, includePercussion, bpm, isStraightHarmony]);
 
   // Tempo sync
   useEffect(() => {
@@ -405,8 +412,6 @@ export const HarmonyStudioView: React.FC<HarmonyStudioViewProps> = ({
           setTotalChordsCount(count);
           if (onChordCountUpdate) onChordCountUpdate(count);
         }}
-        bpm={bpm}
-        setBpm={setBpm}
         selectedPresetId={selectedPresetId}
         onSelectPreset={handleSelectPreset}
         harmonySystem={harmonySystem}
@@ -427,6 +432,8 @@ export const HarmonyStudioView: React.FC<HarmonyStudioViewProps> = ({
         includePercussion={includePercussion}
         setIncludePercussion={setIncludePercussion}
         activeGroove={activeGroove}
+        isStraightHarmony={isStraightHarmony}
+        onToggleStraightHarmony={onToggleStraightHarmony}
       />
 
       {/* 3. MASTER PROGRESSION LANE */}
@@ -473,10 +480,11 @@ export const HarmonyStudioView: React.FC<HarmonyStudioViewProps> = ({
         bpm={bpm}
         tonicRoot={tonicRoot}
         activeGroove={activeGroove}
-        grooveStyle={grooveStyle}
-        includePercussion={includePercussion}
+        grooveStyle={isStraightHarmony ? 'sustained' : grooveStyle}
+        includePercussion={isStraightHarmony ? false : includePercussion}
       />
     </div>
   );
 };
+
 
