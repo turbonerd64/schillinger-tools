@@ -1,0 +1,157 @@
+import { ChordStructureType, CycleMove, CYCLE_MOVES } from './engine';
+
+export interface HarmonyCyclePreset {
+  id: string;
+  name: string;
+  category: 'Diatonic Cycle' | 'Compound / Cadential' | 'Symmetric Root System';
+  description: string;
+  defaultScale: string;
+  defaultScaleId: string;
+  chordStructure: ChordStructureType; // 'S5' = Triads, 'S7' = Sevenths, 'S9' = Ninths
+  totalChords?: number;
+  cycleFormula: {
+    label: string;
+    stepOffset: number; // in 0-indexed scale steps
+  }[];
+}
+
+export const SCHILLINGER_HARMONY_PRESETS: HarmonyCyclePreset[] = [
+  // 1. Diatonic Cycles
+  {
+    id: 'functional_c5',
+    name: 'Functional Circle of Fifths (C5 ↓)',
+    category: 'Diatonic Cycle',
+    description: 'The classical functional circle of fifths descending through all 7 scale degrees',
+    defaultScale: 'Ionian',
+    defaultScaleId: 'ionian',
+    chordStructure: 'S7',
+    totalChords: 8,
+    cycleFormula: [
+      { label: 'C5 ↓', stepOffset: 3 }, // -4 mod 7 = +3
+    ],
+  },
+  {
+    id: 'mediant_c3',
+    name: 'Mediant Fall (C3 ↓)',
+    category: 'Diatonic Cycle',
+    description: 'Descending cycle of thirds; maximum common-tone smoothness between chords',
+    defaultScale: 'Ionian',
+    defaultScaleId: 'ionian',
+    chordStructure: 'S7',
+    totalChords: 8,
+    cycleFormula: [
+      { label: 'C3 ↓', stepOffset: 5 }, // -2 mod 7 = +5
+    ],
+  },
+  {
+    id: 'stepwise_c7',
+    name: 'Stepwise Ascending (C7 ↓ / Step ↑)',
+    category: 'Diatonic Cycle',
+    description: 'Cycle of sevenths descending (moving up by 2nds); zero common tones between adjacent chords',
+    defaultScale: 'Ionian',
+    defaultScaleId: 'ionian',
+    chordStructure: 'S5',
+    totalChords: 8,
+    cycleFormula: [
+      { label: 'C7 ↓ (Step ↑)', stepOffset: 1 },
+    ],
+  },
+
+  // 2. Compound / Cadential
+  {
+    id: 'romanesca',
+    name: 'Canon / Romanesca Ground',
+    category: 'Compound / Cadential',
+    description: 'Alternating cycle of descending fifth followed by ascending third (I - IV - vi - ii...)',
+    defaultScale: 'Ionian',
+    defaultScaleId: 'ionian',
+    chordStructure: 'S5',
+    totalChords: 8,
+    cycleFormula: [
+      { label: 'C5 ↓', stepOffset: 3 },
+      { label: 'C3 ↑', stepOffset: 2 },
+    ],
+  },
+  {
+    id: 'cadential_turn',
+    name: 'Classical Cadential Turn',
+    category: 'Compound / Cadential',
+    description: 'Stepwise shift to pre-dominant followed by fifth cycle resolution (I -> ii -> V -> I)',
+    defaultScale: 'Ionian',
+    defaultScaleId: 'ionian',
+    chordStructure: 'S7',
+    totalChords: 8,
+    cycleFormula: [
+      { label: 'C7 ↓ (Step ↑)', stepOffset: 1 },
+      { label: 'C5 ↓', stepOffset: 3 },
+      { label: 'C5 ↓', stepOffset: 3 },
+    ],
+  },
+  {
+    id: 'kozlov_28',
+    name: "Kozlov's 28-Chord Cyclic Matrix",
+    category: 'Compound / Cadential',
+    description: 'A 4-move formula (C3↓ -> C3↓ -> C5↑ -> C3↓) that shifts root each cycle to close across 28 chords',
+    defaultScale: 'Ionian',
+    defaultScaleId: 'ionian',
+    chordStructure: 'S7',
+    totalChords: 28,
+    cycleFormula: [
+      { label: 'C3 ↓', stepOffset: 5 },
+      { label: 'C3 ↓', stepOffset: 5 },
+      { label: 'C5 ↑', stepOffset: 4 },
+      { label: 'C3 ↓', stepOffset: 5 },
+    ],
+  },
+  {
+    id: 'hungarian_drift',
+    name: 'Hungarian Minor Mediant Drift',
+    category: 'Compound / Cadential',
+    description: 'Cycle of thirds projected through Hungarian Minor (1+3+1), generating exotic augmented chords',
+    defaultScale: 'Hungarian Minor',
+    defaultScaleId: 'hungarian_minor',
+    chordStructure: 'S7',
+    totalChords: 12,
+    cycleFormula: [
+      { label: 'C3 ↓', stepOffset: 5 },
+      { label: 'C3 ↓', stepOffset: 5 },
+      { label: 'C5 ↑', stepOffset: 4 },
+    ],
+  },
+
+  // 3. Symmetric Root Systems
+  {
+    id: 'whole_tone_symmetric',
+    name: 'Whole-Tone Symmetric Division',
+    category: 'Symmetric Root System',
+    description: 'Symmetric equal root divisions projected through the 6-tone whole-tone system',
+    defaultScale: 'Whole-Tone',
+    defaultScaleId: 'whole_tone',
+    chordStructure: 'S7',
+    totalChords: 8,
+    cycleFormula: [
+      { label: 'C3 ↓', stepOffset: 5 },
+      { label: 'C5 ↓', stepOffset: 3 },
+    ],
+  },
+];
+
+export function getHarmonyPresetById(id: string): HarmonyCyclePreset | undefined {
+  return SCHILLINGER_HARMONY_PRESETS.find((p) => p.id === id);
+}
+
+/**
+ * Maps a preset's cycleFormula entries into standard CycleMove objects
+ */
+export function getCycleMovesForPreset(preset: HarmonyCyclePreset): CycleMove[] {
+  return preset.cycleFormula.map((step, idx) => {
+    const matched = CYCLE_MOVES.find((m) => m.stepOffset === step.stepOffset);
+    if (matched) return matched;
+    return {
+      id: `step_${idx}`,
+      name: step.label,
+      alias: step.label,
+      stepOffset: step.stepOffset,
+    };
+  });
+}

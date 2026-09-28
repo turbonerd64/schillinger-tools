@@ -9,6 +9,10 @@ import {
   generateRailChords,
   applyGreedyVoiceLeading,
 } from '../../core/harmony/engine';
+import {
+  getHarmonyPresetById,
+  getCycleMovesForPreset,
+} from '../../core/harmony/presets';
 import { FormulaBar } from './FormulaBar';
 import { MasterProgressionLane } from './MasterProgressionLane';
 import { ParallelModeRails } from './ParallelModeRails';
@@ -37,13 +41,37 @@ export const HarmonyStudioView: React.FC<HarmonyStudioViewProps> = ({
   const [totalChordsCount, setTotalChordsCount] = useState<number>(8);
   const [bpm, setBpm] = useState<number>(100);
 
-  // Active cyclic formula moves
+  // Active cyclic formula moves (Initial: Kozlov's 28-Chord Cyclic Matrix)
+  const [selectedPresetId, setSelectedPresetId] = useState<string>('kozlov_28');
   const [formula, setFormula] = useState<CycleMove[]>([
     CYCLE_MOVES.find((m) => m.id === 'c3_down')!,
     CYCLE_MOVES.find((m) => m.id === 'c3_down')!,
     CYCLE_MOVES.find((m) => m.id === 'c5_up')!,
     CYCLE_MOVES.find((m) => m.id === 'c3_down')!,
   ]);
+
+  const handleSelectPreset = (presetId: string) => {
+    setSelectedPresetId(presetId);
+    const preset = getHarmonyPresetById(presetId);
+    if (preset) {
+      const moves = getCycleMovesForPreset(preset);
+      setFormula(moves);
+      setStructure(preset.chordStructure);
+      if (preset.totalChords) {
+        setTotalChordsCount(preset.totalChords);
+        if (onChordCountUpdate) onChordCountUpdate(preset.totalChords);
+      }
+      if (preset.defaultScaleId) {
+        const targetScale = PARENT_SCALES.find((s) => s.id === preset.defaultScaleId);
+        if (targetScale) {
+          setActiveRails((prev) => {
+            if (prev.some((s) => s.id === targetScale.id)) return prev;
+            return [targetScale, ...prev];
+          });
+        }
+      }
+    }
+  };
 
   // Active parallel rails (display rails for comparative view)
   const [activeRails, setActiveRails] = useState<ScaleDefinition[]>([
@@ -190,6 +218,8 @@ export const HarmonyStudioView: React.FC<HarmonyStudioViewProps> = ({
         }}
         bpm={bpm}
         setBpm={setBpm}
+        selectedPresetId={selectedPresetId}
+        onSelectPreset={handleSelectPreset}
       />
 
       {/* 2. MASTER PROGRESSION LANE FIRST (Above Parallel Rails) */}

@@ -11,6 +11,10 @@ import {
   Sliders,
   Gauge,
 } from 'lucide-react';
+import {
+  SCHILLINGER_HARMONY_PRESETS,
+  getHarmonyPresetById,
+} from '../../core/harmony/presets';
 
 interface FormulaBarProps {
   tonicRoot: number;
@@ -23,6 +27,8 @@ interface FormulaBarProps {
   setTotalChordsCount: (count: number) => void;
   bpm: number;
   setBpm: (bpm: number) => void;
+  selectedPresetId: string;
+  onSelectPreset: (presetId: string) => void;
 }
 
 export const FormulaBar: React.FC<FormulaBarProps> = ({
@@ -36,44 +42,32 @@ export const FormulaBar: React.FC<FormulaBarProps> = ({
   setTotalChordsCount,
   bpm,
   setBpm,
+  selectedPresetId,
+  onSelectPreset,
 }) => {
+  const activePreset = getHarmonyPresetById(selectedPresetId);
+
+  const diatonicPresets = SCHILLINGER_HARMONY_PRESETS.filter((p) => p.category === 'Diatonic Cycle');
+  const compoundPresets = SCHILLINGER_HARMONY_PRESETS.filter((p) => p.category === 'Compound / Cadential');
+  const symmetricPresets = SCHILLINGER_HARMONY_PRESETS.filter((p) => p.category === 'Symmetric Root System');
+
   const addMove = (move: CycleMove) => {
+    onSelectPreset('custom');
     if (formula.length < 8) {
       setFormula([...formula, move]);
     }
   };
 
   const removeMove = (index: number) => {
+    onSelectPreset('custom');
     const updated = [...formula];
     updated.splice(index, 1);
     setFormula(updated);
   };
 
-  const applyPreset1 = () => {
-    const c3Down = CYCLE_MOVES.find((m) => m.id === 'c3_down')!;
-    const c5Up = CYCLE_MOVES.find((m) => m.id === 'c5_up')!;
-    setFormula([c3Down, c3Down, c5Up, c3Down]);
-    setStructure('S7');
-    setTotalChordsCount(8);
-  };
-
-  const applyPresetCycle5 = () => {
-    const c5Down = CYCLE_MOVES.find((m) => m.id === 'c5_down')!;
-    setFormula([c5Down]);
-    setStructure('S7');
-    setTotalChordsCount(8);
-  };
-
-  const applyPresetCycle7 = () => {
-    const c7Down = CYCLE_MOVES.find((m) => m.id === 'c7_down')!;
-    setFormula([c7Down]);
-    setStructure('S7');
-    setTotalChordsCount(8);
-  };
-
   return (
     <div className="bg-white rounded-2xl border-2 border-slate-900 p-5 sm:p-6 shadow-sm space-y-5">
-      {/* Top Presets Row */}
+      {/* Top Header Bar: Title and Categorized Presets Dropdown */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b-2 border-slate-100 pb-4">
         <div className="flex items-center gap-2">
           <Sliders className="w-5 h-5 text-[#c84b31]" />
@@ -82,31 +76,65 @@ export const FormulaBar: React.FC<FormulaBarProps> = ({
           </h2>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-500 mr-1 flex items-center gap-1 font-mono">
-            <Sparkles className="w-3.5 h-3.5 text-[#c84b31]" />
-            Presets:
-          </span>
-          <button
-            onClick={applyPreset1}
-            className="px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-bold bg-[#fdf0ec] border-2 border-[#c84b31] text-[#c84b31] hover:bg-[#c84b31] hover:text-white transition-all shadow-sm"
-          >
-            C3/C5 Formula
-          </button>
-          <button
-            onClick={applyPresetCycle5}
-            className="px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-bold bg-slate-100 border-2 border-slate-900 text-slate-900 hover:bg-slate-900 hover:text-white transition-all shadow-sm"
-          >
-            Cycle 5 Down
-          </button>
-          <button
-            onClick={applyPresetCycle7}
-            className="px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-bold bg-slate-100 border-2 border-slate-900 text-slate-900 hover:bg-slate-900 hover:text-white transition-all shadow-sm"
-          >
-            Cycle 7 Down (Step Up)
-          </button>
+        {/* Categorized Harmony Preset Dropdown */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <label htmlFor="harmony-preset-select" className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5 font-mono">
+            <Sparkles className="w-4 h-4 text-[#c84b31]" />
+            Preset:
+          </label>
+          <div className="relative">
+            <select
+              id="harmony-preset-select"
+              value={selectedPresetId}
+              onChange={(e) => onSelectPreset(e.target.value)}
+              className="bg-white border-2 border-slate-900 rounded-xl px-3 py-1.5 text-xs sm:text-sm font-mono font-bold text-slate-900 shadow-2xs hover:border-[#c84b31] focus:outline-none focus:ring-2 focus:ring-[#c84b31] cursor-pointer max-w-[280px] sm:max-w-xs truncate"
+            >
+              <option value="custom">-- Custom Formula --</option>
+              <optgroup label="Diatonic Cycles">
+                {diatonicPresets.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </optgroup>
+              <optgroup label="Compound / Cadential">
+                {compoundPresets.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </optgroup>
+              <optgroup label="Symmetric Root Systems">
+                {symmetricPresets.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </optgroup>
+            </select>
+          </div>
         </div>
       </div>
+
+      {/* Preset Context Banner (Shown when an authentic preset is selected) */}
+      {activePreset && selectedPresetId !== 'custom' && (
+        <div className="bg-[#fdf0ec]/70 border-2 border-[#c84b31]/30 rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs sm:text-sm font-mono">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-extrabold text-[#c84b31] bg-white px-2.5 py-0.5 rounded-md border border-[#c84b31]/40 shadow-2xs">
+              {activePreset.category}
+            </span>
+            <span className="font-bold text-slate-800 bg-white px-2 py-0.5 rounded-md border border-slate-300 shadow-2xs">
+              Scale: {activePreset.defaultScale} &bull; {activePreset.chordStructure === 'S5' ? 'Triads (S5)' : '7ths (S7)'}
+            </span>
+            <span className="text-slate-700 font-sans sm:ml-1 font-medium">
+              {activePreset.description}
+            </span>
+          </div>
+          <div className="text-xs font-mono font-bold text-slate-700 bg-white px-2.5 py-1 rounded-md border border-slate-300 shadow-2xs flex-shrink-0">
+            Formula: <strong className="text-slate-900">[{activePreset.cycleFormula.map((f) => f.label).join(' → ')}]</strong>
+          </div>
+        </div>
+      )}
 
       {/* Main Parameters Grid with larger text */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-3 sm:gap-4">
@@ -145,7 +173,10 @@ export const FormulaBar: React.FC<FormulaBarProps> = ({
             ].map((item) => (
               <button
                 key={item.id}
-                onClick={() => setStructure(item.id as ChordStructureType)}
+                onClick={() => {
+                  setStructure(item.id as ChordStructureType);
+                  onSelectPreset('custom');
+                }}
                 className={`flex-1 py-2 px-1 rounded-xl text-xs sm:text-sm font-extrabold font-mono border-2 transition-all ${
                   structure === item.id
                     ? 'bg-slate-900 border-slate-900 text-white shadow-2xs'
@@ -174,7 +205,10 @@ export const FormulaBar: React.FC<FormulaBarProps> = ({
             min={4}
             max={32}
             value={totalChordsCount}
-            onChange={(e) => setTotalChordsCount(parseInt(e.target.value))}
+            onChange={(e) => {
+              setTotalChordsCount(parseInt(e.target.value));
+              onSelectPreset('custom');
+            }}
             className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#c84b31]"
           />
         </div>
