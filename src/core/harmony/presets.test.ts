@@ -6,8 +6,8 @@ import {
 } from './presets';
 
 describe('Harmony Cycle Presets', () => {
-  it('loads all 8 harmony presets with valid metadata', () => {
-    expect(SCHILLINGER_HARMONY_PRESETS.length).toBe(8);
+  it('loads all harmony presets with valid metadata', () => {
+    expect(SCHILLINGER_HARMONY_PRESETS.length).toBeGreaterThanOrEqual(11);
     SCHILLINGER_HARMONY_PRESETS.forEach((preset) => {
       expect(preset.name).toBeTruthy();
       expect(preset.category).toBeTruthy();
@@ -46,6 +46,15 @@ describe('Harmony Cycle Presets', () => {
       expect(moves.length).toBe(2);
       expect(moves[0].stepOffset).toBe(3); // C5 Down
       expect(moves[1].stepOffset).toBe(2); // C3 Up
+    }
+
+    const coltrane = getHarmonyPresetById('coltrane_3roots');
+    expect(coltrane).toBeDefined();
+    if (coltrane) {
+      const moves = getCycleMovesForPreset(coltrane);
+      expect(moves.length).toBe(1);
+      expect(moves[0].semitoneOffset).toBe(4); // Major 3rd
+      expect(moves[0].system).toBe('symmetric');
     }
   });
 });

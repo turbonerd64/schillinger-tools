@@ -24,7 +24,11 @@ export function lcm(a: number, b: number): number {
  * Standard binary synchronization (a ÷ b)
  * Length = a * b
  */
-export function computeBinarySync(a: number, b: number): {
+export function computeBinarySync(
+  a: number,
+  b: number,
+  metricGrouping: MetricGrouping = 'ab'
+): {
   totalLength: number;
   durations: number[];
   accentIndices: number[];
@@ -57,8 +61,24 @@ export function computeBinarySync(a: number, b: number): {
     const dur = sortedAttacks[i + 1] - currentTick;
     durations.push(dur);
 
-    // Schillinger accent: Coincidence of phase where both generators attack simultaneously
+    // Schillinger Accents (Book I, Chapter 2 & Chapter 8):
+    // 1. Phase coincidence: Simultaneous strike of both generators (t = 0 and common multiples)
+    // 2. Metric downbeat accents:
+    //    - When grouping by a: every attack of major generator a marks a primary metric accent
+    //    - When grouping by b: every attack of minor generator b marks a primary metric accent
+    //    - When grouping by ab (macro cycle): generator a attacks mark the internal structural metric pulses
+    let isAccented = false;
     if (aSet.has(currentTick) && bSet.has(currentTick)) {
+      isAccented = true;
+    } else if (metricGrouping === 'a' && aSet.has(currentTick)) {
+      isAccented = true;
+    } else if (metricGrouping === 'b' && bSet.has(currentTick)) {
+      isAccented = true;
+    } else if (metricGrouping === 'ab' && aSet.has(currentTick)) {
+      isAccented = true;
+    }
+
+    if (isAccented) {
       accentIndices.push(i);
     }
   }
@@ -423,7 +443,7 @@ export function calculateSchillingerRhythm(
   }
 
   // Standard Binary (a ÷ b)
-  const res = computeBinarySync(a, b);
+  const res = computeBinarySync(a, b, metricGrouping);
   const accentSet = new Set(res.accentIndices.map((idx) => res.allAttacks[idx]));
 
   const aBlocks = attacksToBlocks(res.aAttacks, res.totalLength, 'a');

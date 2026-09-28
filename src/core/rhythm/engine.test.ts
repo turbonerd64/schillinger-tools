@@ -22,6 +22,16 @@ describe('Schillinger Book I Mathematical Engine', () => {
     expect(res.accentIndices).toContain(0);
   });
 
+  it('correctly assigns metric accents for coprime polyrhythms based on metric grouping (Book I Ch. 2 & 8)', () => {
+    // 3 ÷ 2 grouped by a (attacks of a at tick 0 and 3)
+    const resA = calculateSchillingerRhythm(3, 2, 'binary', 'a');
+    expect(resA.accentIndices).toEqual([0, 2]);
+
+    // 3 ÷ 2 grouped by b (attacks of b at tick 0, 2, 4)
+    const resB = calculateSchillingerRhythm(3, 2, 'binary', 'b');
+    expect(resB.accentIndices).toEqual([0, 1, 3]);
+  });
+
   it('passes Test Case 3: Fractioned 3 ÷ 2̲', () => {
     const res = calculateSchillingerRhythm(3, 2, 'fractioned');
     expect(res.totalLength).toBe(9); // 3^2

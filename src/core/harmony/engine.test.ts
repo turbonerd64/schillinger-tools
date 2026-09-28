@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   generateRailChords,
   applyGreedyVoiceLeading,
+  applySchillingerVoiceLeading,
   PARENT_SCALES,
   CYCLE_MOVES,
   identifyChord,
@@ -125,5 +126,112 @@ describe('Schillinger Harmony Engine Test Cases', () => {
     // In N = 8, C7 down delta is -(7 - 1) = -6 = +2 (mod 8)
     // Degree indices should advance: 0 -> 2 -> 4 -> 6 -> 0
     expect(chords.map((c) => c.degreeIndex)).toEqual([0, 2, 4, 6, 0]);
+  });
+
+  it('generates authentic Type III symmetric octave divisions by roots of 2', () => {
+    // 1. Major Thirds (∛2, 4 semitones - Coltrane Changes)
+    const symMaj3rd = CYCLE_MOVES.find((m) => m.id === 'sym_major3rd')!;
+    const coltraneChords = generateRailChords(
+      0, // C
+      cIonian,
+      [symMaj3rd],
+      'S7',
+      4,
+      'symmetric',
+      'maj7'
+    );
+    // Cmaj7 -> Emaj7 -> Abmaj7 -> Cmaj7
+    expect(coltraneChords.map((c) => c.chordName)).toEqual([
+      'Cmaj7',
+      'Emaj7',
+      'Abmaj7',
+      'Cmaj7',
+    ]);
+    expect(coltraneChords.map((c) => c.rootPitchClass)).toEqual([0, 4, 8, 0]);
+
+    // 2. Tritone Axis (√2, 6 semitones - 2 polar tonics)
+    const symTritone = CYCLE_MOVES.find((m) => m.id === 'sym_tritone')!;
+    const tritoneChords = generateRailChords(
+      0, // C
+      cIonian,
+      [symTritone],
+      'S7',
+      4,
+      'symmetric',
+      '7'
+    );
+    // C7 -> F#7 -> C7 -> F#7
+    expect(tritoneChords.map((c) => c.chordName)).toEqual([
+      'C7',
+      'F#7',
+      'C7',
+      'F#7',
+    ]);
+    expect(tritoneChords.map((c) => c.rootPitchClass)).toEqual([0, 6, 0, 6]);
+
+    // 3. Minor Thirds / Diminished Axis (∜2, 3 semitones)
+    const symMin3rd = CYCLE_MOVES.find((m) => m.id === 'sym_minor3rd')!;
+    const dimChords = generateRailChords(
+      0, // C
+      cIonian,
+      [symMin3rd],
+      'S7',
+      5,
+      'symmetric',
+      'dim7'
+    );
+    expect(dimChords.map((c) => c.rootPitchClass)).toEqual([0, 3, 6, 9, 0]);
+  });
+
+  it('generates authentic Type II diatonic-symmetric invariant chord structures', () => {
+    // Invariant Dominant 7ths across C5 down cycle
+    const c5Down = CYCLE_MOVES.find((m) => m.id === 'c5_down')!;
+    const invariantDom7Chords = generateRailChords(
+      0, // C
+      cIonian,
+      [c5Down],
+      'S7',
+      4,
+      'diatonic_symmetric',
+      '7'
+    );
+    // All chords have invariant 7 (dominant 7th) structure
+    expect(invariantDom7Chords.map((c) => c.quality)).toEqual(['7', '7', '7', '7']);
+    expect(invariantDom7Chords.map((c) => c.chordName)).toEqual([
+      'C7',
+      'F7',
+      'B7',
+      'E7',
+    ]);
+  });
+
+  it('applies Schillinger algebraic voice leading transformations (T_cw, T_ccw, T_const)', () => {
+    const symMaj3rd = CYCLE_MOVES.find((m) => m.id === 'sym_major3rd')!;
+    const chords = generateRailChords(0, cIonian, [symMaj3rd], 'S7', 3, 'symmetric', 'maj7');
+
+    // Clockwise T_cw
+    const cwVoiced = applySchillingerVoiceLeading(chords, 'schillinger_cw');
+    expect(cwVoiced.length).toBe(3);
+    cwVoiced.forEach((c) => {
+      expect(c.voicedMidiNotes.length).toBe(4);
+    });
+
+    // Counterclockwise T_ccw
+    const ccwVoiced = applySchillingerVoiceLeading(chords, 'schillinger_ccw');
+    expect(ccwVoiced.length).toBe(3);
+    ccwVoiced.forEach((c) => {
+      expect(c.voicedMidiNotes.length).toBe(4);
+    });
+
+    // Constant Tone T_const
+    const c3DownChords = generateRailChords(0, cIonian, [c3Down], 'S7', 2);
+    // Cmaj7 (C E G B) -> Am7 (A C E G) share C, E, G!
+    const constVoiced = applySchillingerVoiceLeading(c3DownChords, 'schillinger_const');
+    expect(constVoiced.length).toBe(2);
+    // Shared notes should be retained
+    const chord1Pcs = constVoiced[0].voicedMidiNotes.slice(1).map((m) => m % 12);
+    const chord2Pcs = constVoiced[1].voicedMidiNotes.slice(1).map((m) => m % 12);
+    const commonPcs = chord1Pcs.filter((pc) => chord2Pcs.includes(pc));
+    expect(commonPcs.length).toBeGreaterThanOrEqual(2);
   });
 });

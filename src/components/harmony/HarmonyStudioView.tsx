@@ -5,9 +5,11 @@ import {
   CycleMove,
   ScaleDefinition,
   ChordStructureType,
+  HarmonySystemType,
+  VoiceLeadingMode,
   ChordItem,
   generateRailChords,
-  applyGreedyVoiceLeading,
+  applySchillingerVoiceLeading,
 } from '../../core/harmony/engine';
 import {
   getHarmonyPresetById,
@@ -40,6 +42,9 @@ export const HarmonyStudioView: React.FC<HarmonyStudioViewProps> = ({
   const [structure, setStructure] = useState<ChordStructureType>('S7');
   const [totalChordsCount, setTotalChordsCount] = useState<number>(8);
   const [bpm, setBpm] = useState<number>(100);
+  const [harmonySystem, setHarmonySystem] = useState<HarmonySystemType>('diatonic');
+  const [invariantQuality, setInvariantQuality] = useState<string>('maj7');
+  const [voiceLeadingMode, setVoiceLeadingMode] = useState<VoiceLeadingMode>('greedy');
 
   // Active cyclic formula moves (Initial: Kozlov's 28-Chord Cyclic Matrix)
   const [selectedPresetId, setSelectedPresetId] = useState<string>('kozlov_28');
@@ -57,6 +62,14 @@ export const HarmonyStudioView: React.FC<HarmonyStudioViewProps> = ({
       const moves = getCycleMovesForPreset(preset);
       setFormula(moves);
       setStructure(preset.chordStructure);
+      if (preset.harmonySystem) {
+        setHarmonySystem(preset.harmonySystem);
+      } else {
+        setHarmonySystem('diatonic');
+      }
+      if (preset.invariantStructureQuality) {
+        setInvariantQuality(preset.invariantStructureQuality);
+      }
       if (preset.totalChords) {
         setTotalChordsCount(preset.totalChords);
         if (onChordCountUpdate) onChordCountUpdate(preset.totalChords);
@@ -83,11 +96,20 @@ export const HarmonyStudioView: React.FC<HarmonyStudioViewProps> = ({
   const railChordsMap = useMemo(() => {
     const map: Record<string, ChordItem[]> = {};
     for (const scale of PARENT_SCALES) {
-      const raw = generateRailChords(tonicRoot, scale, formula, structure, totalChordsCount);
-      map[scale.id] = applyGreedyVoiceLeading(raw);
+      const chords = generateRailChords(
+        tonicRoot,
+        scale,
+        formula,
+        structure,
+        totalChordsCount,
+        harmonySystem,
+        invariantQuality,
+        voiceLeadingMode
+      );
+      map[scale.id] = chords;
     }
     return map;
-  }, [tonicRoot, formula, structure, totalChordsCount]);
+  }, [tonicRoot, formula, structure, totalChordsCount, harmonySystem, invariantQuality, voiceLeadingMode]);
 
   // Master progression
   const [masterChords, setMasterChords] = useState<ChordItem[]>([]);
@@ -115,13 +137,13 @@ export const HarmonyStudioView: React.FC<HarmonyStudioViewProps> = ({
         };
       });
 
-      return applyGreedyVoiceLeading(updated);
+      return applySchillingerVoiceLeading(updated, voiceLeadingMode);
     });
 
     if (onChordCountUpdate) {
       onChordCountUpdate(baseChords.length);
     }
-  }, [railChordsMap]);
+  }, [railChordsMap, voiceLeadingMode]);
 
   const playTimerRef = useRef<number | null>(null);
   const currentChord = masterChords[selectedChordIndex] || masterChords[0];
@@ -141,7 +163,7 @@ export const HarmonyStudioView: React.FC<HarmonyStudioViewProps> = ({
       stepIndex: stepIdx,
       isCustomBorrowed: true,
     };
-    const reVoiced = applyGreedyVoiceLeading(updated);
+    const reVoiced = applySchillingerVoiceLeading(updated, voiceLeadingMode);
     setMasterChords(reVoiced);
     setSelectedChordIndex(stepIdx);
     setSelectedChordId(newChord.id);
@@ -162,7 +184,7 @@ export const HarmonyStudioView: React.FC<HarmonyStudioViewProps> = ({
         };
       }
     }
-    const reVoiced = applyGreedyVoiceLeading(updated);
+    const reVoiced = applySchillingerVoiceLeading(updated, voiceLeadingMode);
     setMasterChords(reVoiced);
     if (reVoiced[startIndex]?.voicedMidiNotes) {
       audioService.playVoicedChord(reVoiced[startIndex].voicedMidiNotes, 0.8, 'piano');
@@ -220,6 +242,12 @@ export const HarmonyStudioView: React.FC<HarmonyStudioViewProps> = ({
         setBpm={setBpm}
         selectedPresetId={selectedPresetId}
         onSelectPreset={handleSelectPreset}
+        harmonySystem={harmonySystem}
+        setHarmonySystem={setHarmonySystem}
+        invariantQuality={invariantQuality}
+        setInvariantQuality={setInvariantQuality}
+        voiceLeadingMode={voiceLeadingMode}
+        setVoiceLeadingMode={setVoiceLeadingMode}
       />
 
       {/* 2. MASTER PROGRESSION LANE FIRST (Above Parallel Rails) */}

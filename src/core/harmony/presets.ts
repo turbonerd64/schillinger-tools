@@ -1,4 +1,4 @@
-import { ChordStructureType, CycleMove, CYCLE_MOVES } from './engine';
+import { ChordStructureType, CycleMove, CYCLE_MOVES, HarmonySystemType } from './engine';
 
 export interface HarmonyCyclePreset {
   id: string;
@@ -8,10 +8,13 @@ export interface HarmonyCyclePreset {
   defaultScale: string;
   defaultScaleId: string;
   chordStructure: ChordStructureType; // 'S5' = Triads, 'S7' = Sevenths, 'S9' = Ninths
+  harmonySystem?: HarmonySystemType;
+  invariantStructureQuality?: string;
   totalChords?: number;
   cycleFormula: {
     label: string;
-    stepOffset: number; // in 0-indexed scale steps
+    stepOffset?: number; // in 0-indexed scale steps
+    semitoneOffset?: number; // in chromatic semitones
   }[];
 }
 
@@ -119,19 +122,65 @@ export const SCHILLINGER_HARMONY_PRESETS: HarmonyCyclePreset[] = [
     ],
   },
 
-  // 3. Symmetric Root Systems
+  // 3. Symmetric Root Systems (Type III: Octave Divisions by Roots of 2)
+  {
+    id: 'coltrane_3roots',
+    name: 'Coltrane Changes (∛2: 3 Tonics)',
+    category: 'Symmetric Root System',
+    description: 'Symmetric major thirds cycle dividing the octave into 3 equal centers (4 semitones: C -> E -> Ab)',
+    defaultScale: 'Ionian (Major)',
+    defaultScaleId: 'ionian',
+    chordStructure: 'S7',
+    harmonySystem: 'symmetric',
+    invariantStructureQuality: 'maj7',
+    totalChords: 6,
+    cycleFormula: [
+      { label: 'C4 (∛2)', semitoneOffset: 4 },
+    ],
+  },
+  {
+    id: 'tritone_2roots',
+    name: 'Tritone Bipolar Axis (√2: 2 Tonics)',
+    category: 'Symmetric Root System',
+    description: 'Symmetric division into 2 equal polar tonics (6 semitones, e.g. C - F#)',
+    defaultScale: 'Ionian (Major)',
+    defaultScaleId: 'ionian',
+    chordStructure: 'S7',
+    harmonySystem: 'symmetric',
+    invariantStructureQuality: '7',
+    totalChords: 4,
+    cycleFormula: [
+      { label: 'C6 (√2)', semitoneOffset: 6 },
+    ],
+  },
+  {
+    id: 'diminished_4roots',
+    name: 'Diminished Axis (∜2: 4 Tonics)',
+    category: 'Symmetric Root System',
+    description: 'Symmetric division of the octave by minor thirds (3 semitones: C -> Eb -> F# -> A)',
+    defaultScale: 'Octatonic (Half-Whole)',
+    defaultScaleId: 'octatonic_hw',
+    chordStructure: 'S7',
+    harmonySystem: 'symmetric',
+    invariantStructureQuality: 'dim7',
+    totalChords: 8,
+    cycleFormula: [
+      { label: 'C3 (∜2)', semitoneOffset: 3 },
+    ],
+  },
   {
     id: 'whole_tone_symmetric',
-    name: 'Whole-Tone Symmetric Division',
+    name: 'Whole-Tone Symmetric Division (⁶√2)',
     category: 'Symmetric Root System',
-    description: 'Symmetric equal root divisions projected through the 6-tone whole-tone system',
+    description: 'Symmetric whole-tone axis dividing the octave into 6 equal centers (2 semitones)',
     defaultScale: 'Whole-Tone',
     defaultScaleId: 'whole_tone',
     chordStructure: 'S7',
-    totalChords: 8,
+    harmonySystem: 'symmetric',
+    invariantStructureQuality: '7',
+    totalChords: 6,
     cycleFormula: [
-      { label: 'C3 ↓', stepOffset: 5 },
-      { label: 'C5 ↓', stepOffset: 3 },
+      { label: 'C2 (⁶√2)', semitoneOffset: 2 },
     ],
   },
 ];
@@ -145,12 +194,24 @@ export function getHarmonyPresetById(id: string): HarmonyCyclePreset | undefined
  */
 export function getCycleMovesForPreset(preset: HarmonyCyclePreset): CycleMove[] {
   return preset.cycleFormula.map((step, idx) => {
+    if (step.semitoneOffset !== undefined) {
+      const matched = CYCLE_MOVES.find((m) => m.semitoneOffset === step.semitoneOffset);
+      if (matched) return matched;
+      return {
+        id: `sym_step_${idx}`,
+        name: step.label,
+        alias: step.label,
+        system: 'symmetric',
+        semitoneOffset: step.semitoneOffset,
+      };
+    }
     const matched = CYCLE_MOVES.find((m) => m.stepOffset === step.stepOffset);
     if (matched) return matched;
     return {
       id: `step_${idx}`,
       name: step.label,
       alias: step.label,
+      system: 'diatonic',
       stepOffset: step.stepOffset,
     };
   });

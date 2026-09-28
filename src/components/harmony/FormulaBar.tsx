@@ -4,12 +4,15 @@ import {
   CYCLE_MOVES,
   CycleMove,
   ChordStructureType,
+  HarmonySystemType,
+  VoiceLeadingMode,
 } from '../../core/harmony/engine';
 import {
   Plus,
   Sparkles,
   Sliders,
-  Gauge,
+  Layers,
+  RotateCw,
 } from 'lucide-react';
 import {
   SCHILLINGER_HARMONY_PRESETS,
@@ -29,6 +32,12 @@ interface FormulaBarProps {
   setBpm: (bpm: number) => void;
   selectedPresetId: string;
   onSelectPreset: (presetId: string) => void;
+  harmonySystem: HarmonySystemType;
+  setHarmonySystem: (sys: HarmonySystemType) => void;
+  invariantQuality: string;
+  setInvariantQuality: (q: string) => void;
+  voiceLeadingMode: VoiceLeadingMode;
+  setVoiceLeadingMode: (mode: VoiceLeadingMode) => void;
 }
 
 export const FormulaBar: React.FC<FormulaBarProps> = ({
@@ -44,12 +53,21 @@ export const FormulaBar: React.FC<FormulaBarProps> = ({
   setBpm,
   selectedPresetId,
   onSelectPreset,
+  harmonySystem,
+  setHarmonySystem,
+  invariantQuality,
+  setInvariantQuality,
+  voiceLeadingMode,
+  setVoiceLeadingMode,
 }) => {
   const activePreset = getHarmonyPresetById(selectedPresetId);
 
   const diatonicPresets = SCHILLINGER_HARMONY_PRESETS.filter((p) => p.category === 'Diatonic Cycle');
   const compoundPresets = SCHILLINGER_HARMONY_PRESETS.filter((p) => p.category === 'Compound / Cadential');
   const symmetricPresets = SCHILLINGER_HARMONY_PRESETS.filter((p) => p.category === 'Symmetric Root System');
+
+  const diatonicMoves = CYCLE_MOVES.filter((m) => m.system === 'diatonic');
+  const symmetricMoves = CYCLE_MOVES.filter((m) => m.system === 'symmetric');
 
   const addMove = (move: CycleMove) => {
     onSelectPreset('custom');
@@ -234,36 +252,171 @@ export const FormulaBar: React.FC<FormulaBarProps> = ({
         </div>
       </div>
 
-      {/* Cyclic Formula Chain */}
-      <div className="bg-slate-50 rounded-xl border-2 border-slate-200 p-4 space-y-3">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-extrabold uppercase tracking-wider text-slate-900 font-mono">
-              Harmonic Cycle Formula:
-            </span>
-            <span className="text-xs text-slate-500 font-bold font-mono">
-              ({formula.length} moves • loops across progression)
+      {/* Schillinger System & Voice-Leading Controls */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4 p-4 rounded-xl bg-slate-50 border-2 border-slate-200">
+        {/* Harmonic System Selection */}
+        <div className="lg:col-span-6 space-y-2">
+          <div className="flex items-center justify-between">
+            <label className="text-xs sm:text-sm font-extrabold text-slate-800 uppercase tracking-wider block font-mono flex items-center gap-1.5">
+              <Layers className="w-4 h-4 text-[#c84b31]" />
+              Harmonic System
+            </label>
+            <span className="text-xs font-mono font-bold text-slate-500">
+              Book V
             </span>
           </div>
-
-          {/* Quick Add Move Buttons */}
-          <div className="flex flex-wrap gap-1.5">
-            {CYCLE_MOVES.map((move) => (
+          <div className="grid grid-cols-3 gap-1.5">
+            {[
+              { id: 'diatonic', label: 'Type I: Diatonic', desc: 'Scale tertian' },
+              { id: 'diatonic_symmetric', label: 'Type II: Invariant', desc: 'Fixed quality' },
+              { id: 'symmetric', label: 'Type III: Symmetric', desc: 'Roots of 2' },
+            ].map((sys) => (
               <button
-                key={move.id}
-                onClick={() => addMove(move)}
-                className="px-3 py-1 rounded-lg text-xs sm:text-sm font-extrabold font-mono bg-white border-2 border-slate-300 text-slate-900 hover:border-slate-900 active:scale-95 transition-all shadow-2xs flex items-center gap-1"
-                title={move.alias}
+                key={sys.id}
+                onClick={() => {
+                  setHarmonySystem(sys.id as HarmonySystemType);
+                  onSelectPreset('custom');
+                }}
+                className={`py-2 px-1.5 rounded-xl text-xs font-extrabold font-mono border-2 transition-all text-center flex flex-col items-center justify-center ${
+                  harmonySystem === sys.id
+                    ? 'bg-[#c84b31] border-[#c84b31] text-white shadow-2xs'
+                    : 'bg-white border-slate-300 text-slate-700 hover:border-slate-800'
+                }`}
               >
-                <Plus className="w-3.5 h-3.5 text-[#c84b31]" />
-                <span>{move.name}</span>
+                <span>{sys.label}</span>
+                <span className={`text-[10px] font-sans font-medium mt-0.5 ${harmonySystem === sys.id ? 'text-white/80' : 'text-slate-400'}`}>
+                  {sys.desc}
+                </span>
+              </button>
+            ))}
+          </div>
+
+          {/* Invariant Quality Selector (Visible in Type II or Type III) */}
+          {(harmonySystem === 'diatonic_symmetric' || harmonySystem === 'symmetric') && (
+            <div className="pt-2 flex items-center gap-1.5 flex-wrap">
+              <span className="text-xs font-mono font-bold text-slate-700">Invariant Quality:</span>
+              {(structure === 'S5'
+                ? [
+                    { id: '', label: 'Maj' },
+                    { id: 'm', label: 'Min' },
+                    { id: 'dim', label: 'Dim' },
+                    { id: 'aug', label: 'Aug' },
+                  ]
+                : [
+                    { id: 'maj7', label: 'Maj7' },
+                    { id: 'm7', label: 'Min7' },
+                    { id: '7', label: 'Dom7' },
+                    { id: 'm7b5', label: 'm7b5' },
+                    { id: 'dim7', label: 'Dim7' },
+                  ]
+              ).map((q) => (
+                <button
+                  key={q.id}
+                  onClick={() => setInvariantQuality(q.id)}
+                  className={`px-2 py-0.5 rounded-lg text-xs font-mono font-bold border-2 transition-all ${
+                    invariantQuality === q.id
+                      ? 'bg-slate-900 border-slate-900 text-white shadow-2xs'
+                      : 'bg-white border-slate-300 text-slate-700 hover:border-slate-900'
+                  }`}
+                >
+                  {q.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Voice-Leading Transformation Groups */}
+        <div className="lg:col-span-6 space-y-2">
+          <div className="flex items-center justify-between">
+            <label className="text-xs sm:text-sm font-extrabold text-slate-800 uppercase tracking-wider block font-mono flex items-center gap-1.5">
+              <RotateCw className="w-4 h-4 text-[#c84b31]" />
+              Voice-Leading Mode
+            </label>
+            <span className="text-xs font-mono font-bold text-slate-500">
+              Book V, Ch. 2
+            </span>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+            {[
+              { id: 'greedy', label: 'Minimal', desc: 'Nearest path' },
+              { id: 'schillinger_cw', label: 'T_cw (Clockwise)', desc: '1 -> 3 -> 5 -> 7' },
+              { id: 'schillinger_ccw', label: 'T_ccw (Counter)', desc: '1 -> 7 -> 5 -> 3' },
+              { id: 'schillinger_const', label: 'T_const (Hold)', desc: 'Common tones' },
+            ].map((vl) => (
+              <button
+                key={vl.id}
+                onClick={() => setVoiceLeadingMode(vl.id as VoiceLeadingMode)}
+                className={`py-2 px-1.5 rounded-xl text-xs font-extrabold font-mono border-2 transition-all text-center flex flex-col items-center justify-center ${
+                  voiceLeadingMode === vl.id
+                    ? 'bg-slate-900 border-slate-900 text-white shadow-2xs'
+                    : 'bg-white border-slate-300 text-slate-700 hover:border-slate-800'
+                }`}
+              >
+                <span>{vl.label}</span>
+                <span className={`text-[10px] font-sans font-medium mt-0.5 ${voiceLeadingMode === vl.id ? 'text-slate-300' : 'text-slate-400'}`}>
+                  {vl.desc}
+                </span>
               </button>
             ))}
           </div>
         </div>
+      </div>
+
+      {/* Cyclic Formula Chain */}
+      <div className="bg-slate-50 rounded-xl border-2 border-slate-200 p-4 space-y-3">
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-extrabold uppercase tracking-wider text-slate-900 font-mono">
+                Harmonic Cycle Formula:
+              </span>
+              <span className="text-xs text-slate-500 font-bold font-mono">
+                ({formula.length} moves &bull; loops across progression)
+              </span>
+            </div>
+          </div>
+
+          {/* Quick Add Move Buttons: Categorized Diatonic vs Symmetric */}
+          <div className="flex flex-col gap-2 pt-1 border-t border-slate-200">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-slate-600 mr-1">
+                Diatonic Cycles (Scale Steps):
+              </span>
+              {diatonicMoves.map((move) => (
+                <button
+                  key={move.id}
+                  onClick={() => addMove(move)}
+                  className="px-2.5 py-1 rounded-lg text-xs font-extrabold font-mono bg-white border-2 border-slate-300 text-slate-900 hover:border-slate-900 active:scale-95 transition-all shadow-2xs flex items-center gap-1"
+                  title={move.alias}
+                >
+                  <Plus className="w-3 h-3 text-[#c84b31]" />
+                  <span>{move.name}</span>
+                </button>
+              ))}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-[#c84b31] mr-1">
+                Symmetric Octave Divisions (Roots of 2):
+              </span>
+              {symmetricMoves.map((move) => (
+                <button
+                  key={move.id}
+                  onClick={() => addMove(move)}
+                  className="px-2.5 py-1 rounded-lg text-xs font-extrabold font-mono bg-white border-2 border-[#c84b31]/40 text-slate-900 hover:border-[#c84b31] active:scale-95 transition-all shadow-2xs flex items-center gap-1"
+                  title={move.alias}
+                >
+                  <Plus className="w-3 h-3 text-[#c84b31]" />
+                  <span>{move.name}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
 
         {/* Formula Pills Row */}
-        <div className="flex flex-wrap items-center gap-2 pt-1">
+        <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-200">
           <div className="px-3.5 py-1.5 rounded-full bg-[#c84b31] text-white font-mono text-xs sm:text-sm font-bold shadow-sm">
             Degree I (Tonic)
           </div>
@@ -280,7 +433,13 @@ export const FormulaBar: React.FC<FormulaBarProps> = ({
               >
                 <span>{move.name}</span>
                 <span className="text-xs text-slate-400 font-sans ml-1 mr-1">
-                  {move.id.includes('c3') ? '3rd' : move.id.includes('c5') ? '5th' : 'step'}
+                  {move.semitoneOffset !== undefined
+                    ? `${move.semitoneOffset} st`
+                    : move.id.includes('c3')
+                    ? '3rd'
+                    : move.id.includes('c5')
+                    ? '5th'
+                    : 'step'}
                 </span>
                 <button
                   onClick={() => removeMove(idx)}
