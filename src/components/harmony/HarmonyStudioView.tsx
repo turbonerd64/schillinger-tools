@@ -16,13 +16,22 @@ import {
   getHarmonyPresetById,
   getCycleMovesForPreset,
 } from '../../core/harmony/presets';
+import {
+  GrooveStyle,
+  HarmonyGroovePattern,
+  HARMONY_GROOVE_PRESETS,
+  createGrooveFromRhythmState,
+  generateProgressionArrangement,
+} from '../../core/harmony/groove';
 import { FormulaBar } from './FormulaBar';
+import { GrooveControlStrip } from './GrooveControlStrip';
 import { MasterProgressionLane } from './MasterProgressionLane';
 import { ParallelModeRails } from './ParallelModeRails';
 import { InteractivePiano } from './InteractivePiano';
 import { InteractiveFretboard } from './InteractiveFretboard';
 import { HarmonyExportPanel } from './HarmonyExportPanel';
 import { audioService } from '../../core/audio/synth';
+import { SyncMode, MetricGrouping } from '../../core/rhythm/types';
 
 interface HarmonyStudioViewProps {
   isPlaying: boolean;
@@ -30,7 +39,17 @@ interface HarmonyStudioViewProps {
   selectedChordIndex: number;
   setSelectedChordIndex: React.Dispatch<React.SetStateAction<number>>;
   onChordCountUpdate?: (count: number) => void;
+  rhythmParams?: {
+    a: number;
+    b: number;
+    c?: number;
+    mode: SyncMode;
+    metricGrouping: MetricGrouping;
+    isReversed?: boolean;
+    rotationOffset?: number;
+  };
 }
+
 
 export const HarmonyStudioView: React.FC<HarmonyStudioViewProps> = ({
   isPlaying,
@@ -38,7 +57,9 @@ export const HarmonyStudioView: React.FC<HarmonyStudioViewProps> = ({
   selectedChordIndex,
   setSelectedChordIndex,
   onChordCountUpdate,
+  rhythmParams,
 }) => {
+
   const [tonicRoot, setTonicRoot] = useState<number>(0); // C
   const [structure, setStructure] = useState<ChordStructureType>('S7');
   const [totalChordsCount, setTotalChordsCount] = useState<number>(8);
@@ -238,37 +259,136 @@ export const HarmonyStudioView: React.FC<HarmonyStudioViewProps> = ({
     }
   };
 
-  // Progression playback loop
-  useEffect(() => {
-    if (isPlaying) {
-      const intervalMs = (60 / bpm) * 1000 * 2;
-      playTimerRef.current = window.setInterval(() => {
-        setSelectedChordIndex((prev) => {
-          const next = (prev + 1) % masterChords.length;
-          const nextChord = masterChords[next];
-          if (nextChord && nextChord.voicedMidiNotes) {
-            audioService.playVoicedChord(nextChord.voicedMidiNotes, (intervalMs / 1000) * 0.9, 'piano');
-          }
-          return next;
-        });
-      }, intervalMs);
+  // Groove Realization State
+  const [selectedGrooveId, setSelectedGrooveId] = useState<string>('gershwin_4_3');
+  const [grooveStyle, setGrooveStyle] = useState<GrooveStyle>('comping');
+  const [includePercussion, setIncludePercussion] = useState<boolean>(true);
 
-      if (currentChord && currentChord.voicedMidiNotes) {
-        audioService.playVoicedChord(currentChord.voicedMidiNotes, (intervalMs / 1000) * 0.9, 'piano');
+  // Dynamic live groove preset from active Rhythm Studio parameters
+  const liveRhythmPreset = useMemo(() => {
+    if (!rhythmParams) return null;
+    return createGrooveFromRhythmState(
+      rhythmParams.a,
+      rhythmParams.b,
+      rhythmParams.mode,
+      rhythmParams.metricGrouping,
+      rhythmParams.c,
+      rhythmParams.isReversed,
+      rhythmParams.rotationOffset
+    );
+  }, [rhythmParams]);
+
+  const groovePresets = useMemo(() => {
+    if (liveRhythmPreset) {
+      return [liveRhythmPreset, ...HARMONY_GROOVE_PRESETS];
+    }
+    return HARMONY_GROOVE_PRESETS;
+  }, [liveRhythmPreset]);
+
+  const activeGroove = useMemo(() => {
+    return groovePresets.find((g) => g.id === selectedGrooveId) || groovePresets[0];
+  }, [groovePresets, selectedGrooveId]);
+
+  // Synchronize dynamic arrangement into Web Audio lookahead scheduler
+  useEffect(() => {
+    if (!masterChords || masterChords.length === 0) return;
+
+    const arrangement = generateProgressionArrangement(
+      masterChords,
+      activeGroove,
+      grooveStyle,
+      includePercussion
+    );
+
+    const stepMap = new Map<number, {
+      chordIndex: number;
+      notes: Array<{
+        pitches: number[];
+        durationSec: number;
+        velocity: number;
+        instrument?: 'epiano' | 'piano' | 'guitar';
+      }>;
+      percussion?: {
+        channel: 'a' | 'b' | 'c' | 'resultant' | 'accent';
+        isAccented: boolean;
+      };
+    }>();
+
+    const secondsPerUnit = 60 / bpm / 4;
+
+    for (let u = 0; u < arrangement.totalTimelineUnits; u++) {
+      const stepInfo = arrangement.chordSteps.find((s) => u >= s.startUnit && u < s.endUnit);
+      const chordIndex = stepInfo ? stepInfo.stepIndex : 0;
+
+      const notesAtU: Array<{
+        pitches: number[];
+        durationSec: number;
+        velocity: number;
+        instrument?: 'epiano' | 'piano' | 'guitar';
+      }> = [];
+
+      // Add chord notes (Track 0) and bass notes (Track 1)
+      for (let t = 0; t <= 1 && t < arrangement.tracks.length; t++) {
+        const trackNotes = arrangement.tracks[t].notes.filter((n) => n.tick === u);
+        for (const n of trackNotes) {
+          notesAtU.push({
+            pitches: n.pitches,
+            durationSec: Math.max(0.05, n.durationUnits * secondsPerUnit * (n.gateRatio ?? 0.85)),
+            velocity: n.velocity ?? 85,
+            instrument: 'piano',
+          });
+        }
       }
-    } else {
-      if (playTimerRef.current !== null) {
-        window.clearInterval(playTimerRef.current);
-        playTimerRef.current = null;
+
+      let percInfo: { channel: 'a' | 'b' | 'c' | 'resultant' | 'accent'; isAccented: boolean } | undefined;
+      if (includePercussion && arrangement.tracks[2]) {
+        const percNote = arrangement.tracks[2].notes.find((n) => n.tick === u);
+        if (percNote) {
+          const isAcc = percNote.pitches.includes(37) || percNote.pitches.includes(76);
+          percInfo = {
+            channel: percNote.pitches.includes(37) ? 'accent' : isAcc ? 'a' : 'b',
+            isAccented: isAcc,
+          };
+        }
+      }
+
+      if (notesAtU.length > 0 || percInfo) {
+        stepMap.set(u, {
+          chordIndex,
+          notes: notesAtU,
+          percussion: percInfo,
+        });
       }
     }
 
+    audioService.loadHarmonySequence(arrangement.totalTimelineUnits, stepMap);
+  }, [masterChords, activeGroove, grooveStyle, includePercussion, bpm]);
+
+  // Tempo sync
+  useEffect(() => {
+    audioService.setBpm(bpm);
+  }, [bpm]);
+
+  // Playhead step callback
+  useEffect(() => {
+    audioService.setHarmonyPlayheadCallback((chordIdx) => {
+      setSelectedChordIndex(chordIdx);
+    });
+
     return () => {
-      if (playTimerRef.current !== null) {
-        window.clearInterval(playTimerRef.current);
-      }
+      audioService.setHarmonyPlayheadCallback(null);
     };
-  }, [isPlaying, bpm, masterChords]);
+  }, [setSelectedChordIndex]);
+
+  // Master play / pause handling
+  useEffect(() => {
+    if (isPlaying) {
+      audioService.setBpm(bpm);
+      audioService.playHarmony();
+    } else {
+      audioService.pauseHarmony();
+    }
+  }, [isPlaying, bpm]);
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
@@ -297,7 +417,19 @@ export const HarmonyStudioView: React.FC<HarmonyStudioViewProps> = ({
         setVoiceLeadingMode={setVoiceLeadingMode}
       />
 
-      {/* 2. MASTER PROGRESSION LANE FIRST (Above Parallel Rails) */}
+      {/* 2. Rhythmic Harmony & Groove Coupling Control Strip */}
+      <GrooveControlStrip
+        groovePresets={groovePresets}
+        selectedGrooveId={selectedGrooveId}
+        onSelectGroove={setSelectedGrooveId}
+        grooveStyle={grooveStyle}
+        setGrooveStyle={setGrooveStyle}
+        includePercussion={includePercussion}
+        setIncludePercussion={setIncludePercussion}
+        activeGroove={activeGroove}
+      />
+
+      {/* 3. MASTER PROGRESSION LANE */}
       <MasterProgressionLane
         masterChords={masterChords}
         activeChordIndex={selectedChordIndex}
@@ -309,7 +441,7 @@ export const HarmonyStudioView: React.FC<HarmonyStudioViewProps> = ({
         onApplyDensity={handleApplyDensity}
       />
 
-      {/* 3. PARALLEL MODE RAILS (For comparative reference & chord borrowing) */}
+      {/* 4. PARALLEL MODE RAILS */}
       <ParallelModeRails
         activeRails={activeRails}
         setActiveRails={setActiveRails}
@@ -322,7 +454,7 @@ export const HarmonyStudioView: React.FC<HarmonyStudioViewProps> = ({
         onSwapIntoMaster={(chord, stepIdx) => handleSwapChord(stepIdx, chord)}
       />
 
-      {/* 4. Visualizers: Piano & Guitar Fretboard */}
+      {/* 5. Visualizers: Piano & Guitar Fretboard */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <InteractivePiano
           activeMidiNotes={currentChord?.voicedMidiNotes || []}
@@ -335,8 +467,16 @@ export const HarmonyStudioView: React.FC<HarmonyStudioViewProps> = ({
         />
       </div>
 
-      {/* 5. Export Panel with Multi-format support */}
-      <HarmonyExportPanel chords={masterChords} bpm={bpm} tonicRoot={tonicRoot} />
+      {/* 6. Export Panel with Multi-format & Multi-track SMF 1 support */}
+      <HarmonyExportPanel
+        chords={masterChords}
+        bpm={bpm}
+        tonicRoot={tonicRoot}
+        activeGroove={activeGroove}
+        grooveStyle={grooveStyle}
+        includePercussion={includePercussion}
+      />
     </div>
   );
 };
+

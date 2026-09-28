@@ -415,6 +415,225 @@ class SchillingerAudioEngine {
   public getIsPlaying(): boolean {
     return this.isPlaying;
   }
+
+  // --- HARMONY PROGRESSION SCHEDULER ---
+
+  private harmonyTimeline: Map<number, {
+    chordIndex: number;
+    notes: Array<{
+      pitches: number[];
+      durationSec: number;
+      velocity: number;
+      instrument?: 'epiano' | 'piano' | 'guitar';
+    }>;
+    percussion?: {
+      channel: 'a' | 'b' | 'c' | 'resultant' | 'accent';
+      isAccented: boolean;
+    };
+  }> = new Map();
+
+  private totalHarmonyUnits: number = 16;
+  private currentHarmonyUnit: number = 0;
+  private nextHarmonyTime: number = 0;
+  private onHarmonyPlayheadUpdate: ((chordIndex: number, currentUnit: number, totalUnits: number) => void) | null = null;
+
+  public setHarmonyPlayheadCallback(
+    cb: ((chordIndex: number, currentUnit: number, totalUnits: number) => void) | null
+  ) {
+    this.onHarmonyPlayheadUpdate = cb;
+  }
+
+  public loadHarmonySequence(
+    totalUnits: number,
+    timelineMap: Map<number, {
+      chordIndex: number;
+      notes: Array<{
+        pitches: number[];
+        durationSec: number;
+        velocity: number;
+        instrument?: 'epiano' | 'piano' | 'guitar';
+      }>;
+      percussion?: {
+        channel: 'a' | 'b' | 'c' | 'resultant' | 'accent';
+        isAccented: boolean;
+      };
+    }>
+  ) {
+    this.totalHarmonyUnits = Math.max(1, totalUnits);
+    this.harmonyTimeline = new Map(timelineMap);
+  }
+
+  public playVoicedChordWithVelocity(
+    midiNotes: number[],
+    durationSec: number = 0.9,
+    velocity: number = 85,
+    instrument: 'epiano' | 'piano' | 'guitar' = 'piano',
+    startTime?: number
+  ) {
+    this.initContext();
+    if (!this.ctx || !this.masterGainNode) return;
+
+    const start = startTime ?? this.ctx.currentTime;
+    const velScalar = Math.max(0.1, Math.min(1.5, velocity / 85));
+    const noteGainAmount = (0.45 / Math.sqrt(Math.max(1, midiNotes.length))) * velScalar;
+
+    midiNotes.forEach((midi, voiceIndex) => {
+      if (!this.ctx || !this.masterGainNode) return;
+      const freq = 440 * Math.pow(2, (midi - 69) / 12);
+
+      const osc = this.ctx.createOscillator();
+      const gainNode = this.ctx.createGain();
+      const filter = this.ctx.createBiquadFilter();
+
+      if (instrument === 'piano') {
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(3200, start);
+        filter.frequency.exponentialRampToValueAtTime(700, start + durationSec);
+
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, start);
+
+        const hammer = this.ctx.createOscillator();
+        const hammerGain = this.ctx.createGain();
+        hammer.type = 'sine';
+        hammer.frequency.setValueAtTime(freq * 4, start);
+        hammerGain.gain.setValueAtTime(noteGainAmount * 0.4, start);
+        hammerGain.gain.exponentialRampToValueAtTime(0.0001, start + 0.02);
+        hammer.connect(hammerGain);
+        hammerGain.connect(this.masterGainNode);
+        hammer.start(start);
+        hammer.stop(start + 0.025);
+
+        gainNode.gain.setValueAtTime(0.0001, start);
+        gainNode.gain.linearRampToValueAtTime(noteGainAmount * 1.2, start + 0.008);
+        gainNode.gain.exponentialRampToValueAtTime(noteGainAmount * 0.4, start + durationSec * 0.5);
+        gainNode.gain.exponentialRampToValueAtTime(0.0001, start + durationSec);
+      } else if (instrument === 'guitar') {
+        filter.type = 'bandpass';
+        filter.Q.value = 2.5;
+        filter.frequency.setValueAtTime(freq * 2.2, start);
+        filter.frequency.exponentialRampToValueAtTime(freq * 1.1, start + 0.15);
+
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(freq, start);
+
+        const pluck = this.ctx.createOscillator();
+        const pluckGain = this.ctx.createGain();
+        pluck.type = 'square';
+        pluck.frequency.setValueAtTime(freq * 5, start);
+        pluckGain.gain.setValueAtTime(noteGainAmount * 0.35, start);
+        pluckGain.gain.exponentialRampToValueAtTime(0.0001, start + 0.015);
+        pluck.connect(pluckGain);
+        pluckGain.connect(this.masterGainNode);
+        pluck.start(start);
+        pluck.stop(start + 0.02);
+
+        gainNode.gain.setValueAtTime(0.0001, start);
+        gainNode.gain.linearRampToValueAtTime(noteGainAmount * 1.1, start + 0.006);
+        gainNode.gain.exponentialRampToValueAtTime(noteGainAmount * 0.3, start + durationSec * 0.4);
+        gainNode.gain.exponentialRampToValueAtTime(0.0001, start + durationSec);
+      } else {
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(voiceIndex === 0 ? 900 : 2800, start);
+
+        osc.type = voiceIndex === 0 ? 'sine' : 'triangle';
+        osc.frequency.setValueAtTime(freq, start);
+
+        gainNode.gain.setValueAtTime(0.0001, start);
+        gainNode.gain.linearRampToValueAtTime(noteGainAmount, start + 0.04);
+        gainNode.gain.exponentialRampToValueAtTime(noteGainAmount * 0.7, start + durationSec * 0.6);
+        gainNode.gain.exponentialRampToValueAtTime(0.0001, start + durationSec);
+      }
+
+      osc.connect(filter);
+      filter.connect(gainNode);
+      gainNode.connect(this.masterGainNode);
+
+      osc.start(start);
+      osc.stop(start + durationSec + 0.05);
+    });
+  }
+
+  private scheduleHarmony() {
+    if (!this.ctx || !this.isHarmonyPlaying) return;
+
+    const secondsPerUnit = 60 / this.bpm / 4;
+
+    while (this.nextHarmonyTime < this.ctx.currentTime + this.scheduleAheadSec) {
+      const unit = this.currentHarmonyUnit;
+      const step = this.harmonyTimeline.get(unit);
+
+      if (step) {
+        for (const note of step.notes) {
+          this.playVoicedChordWithVelocity(
+            note.pitches,
+            note.durationSec,
+            note.velocity,
+            note.instrument ?? 'piano',
+            this.nextHarmonyTime
+          );
+        }
+
+        if (step.percussion) {
+          this.triggerPercussion(
+            step.percussion.channel,
+            this.nextHarmonyTime,
+            step.percussion.isAccented
+          );
+        }
+
+        const targetTime = this.nextHarmonyTime;
+        const currentUnitVal = unit;
+        const currentChordIdx = step.chordIndex;
+        const total = this.totalHarmonyUnits;
+        const delayMs = Math.max(0, (targetTime - this.ctx.currentTime) * 1000);
+
+        window.setTimeout(() => {
+          if (this.isHarmonyPlaying && this.onHarmonyPlayheadUpdate) {
+            this.onHarmonyPlayheadUpdate(currentChordIdx, currentUnitVal, total);
+          }
+        }, delayMs);
+      }
+
+      this.nextHarmonyTime += secondsPerUnit;
+      this.currentHarmonyUnit = (this.currentHarmonyUnit + 1) % this.totalHarmonyUnits;
+    }
+  }
+
+  public playHarmony() {
+    this.initContext();
+    if (this.isHarmonyPlaying) return;
+
+    this.isHarmonyPlaying = true;
+    if (this.ctx) {
+      this.nextHarmonyTime = this.ctx.currentTime + 0.05;
+    }
+
+    this.harmonyTimerId = window.setInterval(() => {
+      this.scheduleHarmony();
+    }, this.lookaheadMs);
+  }
+
+  public pauseHarmony() {
+    this.isHarmonyPlaying = false;
+    if (this.harmonyTimerId !== null) {
+      window.clearInterval(this.harmonyTimerId);
+      this.harmonyTimerId = null;
+    }
+  }
+
+  public stopHarmony() {
+    this.pauseHarmony();
+    this.currentHarmonyUnit = 0;
+    if (this.onHarmonyPlayheadUpdate) {
+      this.onHarmonyPlayheadUpdate(0, 0, this.totalHarmonyUnits);
+    }
+  }
+
+  public getIsHarmonyPlaying(): boolean {
+    return this.isHarmonyPlaying;
+  }
 }
 
 export const audioService = new SchillingerAudioEngine();
+

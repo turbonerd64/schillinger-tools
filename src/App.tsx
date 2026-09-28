@@ -78,6 +78,7 @@ export function App() {
       setIsPlayingRhythm(false);
     }
     if (activeTab !== 'harmony' && isPlayingHarmony) {
+      audioService.pauseHarmony();
       setIsPlayingHarmony(false);
     }
   }, [activeTab]);
@@ -86,6 +87,7 @@ export function App() {
   const [isPlayingHarmony, setIsPlayingHarmony] = useState<boolean>(false);
   const [harmonyIndex, setHarmonyIndex] = useState<number>(0);
   const [harmonyCount, setHarmonyCount] = useState<number>(8);
+
 
   // Compute master Schillinger resultant (standard or custom genre preset)
   const activePreset = useMemo(() => getPresetById(selectedPresetId), [selectedPresetId]);
@@ -188,11 +190,16 @@ export function App() {
   };
 
   const handlePlayHarmony = () => setIsPlayingHarmony(true);
-  const handlePauseHarmony = () => setIsPlayingHarmony(false);
+  const handlePauseHarmony = () => {
+    audioService.pauseHarmony();
+    setIsPlayingHarmony(false);
+  };
   const handleResetHarmony = () => {
+    audioService.stopHarmony();
     setIsPlayingHarmony(false);
     setHarmonyIndex(0);
   };
+
   const handleStepBackHarmony = () => {
     setHarmonyIndex((prev) => (prev - 1 + harmonyCount) % harmonyCount);
   };
@@ -285,8 +292,18 @@ export function App() {
             selectedChordIndex={harmonyIndex}
             setSelectedChordIndex={setHarmonyIndex}
             onChordCountUpdate={(count) => setHarmonyCount(count)}
+            rhythmParams={{
+              a,
+              b,
+              c,
+              mode,
+              metricGrouping,
+              isReversed: variations.isReversed,
+              rotationOffset: variations.rotationOffset,
+            }}
           />
         )}
+
 
         {activeTab === 'theory' && <TheoryPrimer />}
       </main>

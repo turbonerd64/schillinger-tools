@@ -1,23 +1,35 @@
 import React, { useState } from 'react';
 import { ChordItem, formatProgression } from '../../core/harmony/engine';
-import { downloadMidiFile, MidiNoteEvent } from '../../core/export/midi';
-import { Copy, Check, Music, Code } from 'lucide-react';
+import { downloadMidiFile, downloadMultiTrackMidiFile, MidiNoteEvent } from '../../core/export/midi';
+import {
+  HarmonyGroovePattern,
+  GrooveStyle,
+  generateProgressionArrangement,
+} from '../../core/harmony/groove';
+import { Copy, Check, Music, Code, Sparkles, Layers } from 'lucide-react';
 
 interface HarmonyExportPanelProps {
   chords: ChordItem[];
   bpm: number;
   tonicRoot: number;
+  activeGroove?: HarmonyGroovePattern;
+  grooveStyle?: GrooveStyle;
+  includePercussion?: boolean;
 }
 
 export const HarmonyExportPanel: React.FC<HarmonyExportPanelProps> = ({
   chords,
   bpm,
   tonicRoot,
+  activeGroove,
+  grooveStyle = 'comping',
+  includePercussion = true,
 }) => {
   const [format, setFormat] = useState<'symbols' | 'roman' | 'nashville'>('symbols');
   const [copiedText, setCopiedText] = useState(false);
   const [copiedJson, setCopiedJson] = useState(false);
   const [midiSuccess, setMidiSuccess] = useState(false);
+  const [multiTrackSuccess, setMultiTrackSuccess] = useState(false);
 
   const formattedString = formatProgression(chords, tonicRoot, format);
 
@@ -65,6 +77,25 @@ export const HarmonyExportPanel: React.FC<HarmonyExportPanelProps> = ({
     setMidiSuccess(true);
     setTimeout(() => setMidiSuccess(false), 2500);
   };
+
+  const handleExportGroovingMidi = () => {
+    if (!activeGroove) return;
+    const arrangement = generateProgressionArrangement(
+      chords,
+      activeGroove,
+      grooveStyle,
+      includePercussion
+    );
+    downloadMultiTrackMidiFile(
+      arrangement.tracks,
+      `schillinger_${activeGroove.id}_arrangement`,
+      bpm,
+      `Schillinger ${activeGroove.name}`
+    );
+    setMultiTrackSuccess(true);
+    setTimeout(() => setMultiTrackSuccess(false), 2500);
+  };
+
 
   return (
     <div className="bg-white rounded-2xl border-2 border-slate-900 p-5 shadow-sm space-y-4">
@@ -131,39 +162,50 @@ export const HarmonyExportPanel: React.FC<HarmonyExportPanelProps> = ({
       </div>
 
       {/* Export Action Buttons */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <button
           onClick={handleCopyText}
-          className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl border-2 border-slate-900 bg-white hover:bg-slate-100 text-slate-900 text-xs sm:text-sm font-extrabold font-mono transition-all shadow-2xs active:scale-95"
+          className="flex items-center justify-center gap-2 py-3 px-3 rounded-xl border-2 border-slate-900 bg-white hover:bg-slate-100 text-slate-900 text-xs sm:text-sm font-extrabold font-mono transition-all shadow-2xs active:scale-95"
         >
           {copiedText ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4 text-[#c84b31]" />}
           <span>
             {copiedText
-              ? 'Copied to Clipboard!'
+              ? 'Copied!'
               : format === 'symbols'
-              ? 'Copy Chord Symbols'
+              ? 'Copy Chords'
               : format === 'roman'
-              ? 'Copy Roman Numerals'
-              : 'Copy Nashville Numbers'}
+              ? 'Copy Roman'
+              : 'Copy Nashville'}
           </span>
         </button>
 
         <button
-          onClick={handleExportMidi}
-          className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl border-2 border-[#c84b31] bg-[#fdf0ec] text-[#c84b31] hover:bg-[#c84b31] hover:text-white text-xs sm:text-sm font-extrabold font-mono transition-all shadow-2xs active:scale-95"
+          onClick={handleCopyJson}
+          className="flex items-center justify-center gap-2 py-3 px-3 rounded-xl border-2 border-slate-900 bg-white hover:bg-slate-100 text-slate-900 text-xs sm:text-sm font-extrabold font-mono transition-all shadow-2xs active:scale-95"
         >
-          {midiSuccess ? <Check className="w-4 h-4 text-emerald-600" /> : <Music className="w-4 h-4" />}
-          <span>{midiSuccess ? 'MIDI Downloaded!' : 'Export Voiced MIDI (.mid)'}</span>
+          {copiedJson ? <Check className="w-4 h-4 text-emerald-600" /> : <Code className="w-4 h-4 text-slate-700" />}
+          <span>{copiedJson ? 'JSON Copied!' : 'Copy JSON'}</span>
         </button>
 
         <button
-          onClick={handleCopyJson}
-          className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl border-2 border-slate-900 bg-white hover:bg-slate-100 text-slate-900 text-xs sm:text-sm font-extrabold font-mono transition-all shadow-2xs active:scale-95"
+          onClick={handleExportMidi}
+          className="flex items-center justify-center gap-2 py-3 px-3 rounded-xl border-2 border-slate-900 bg-white hover:bg-slate-100 text-slate-900 text-xs sm:text-sm font-extrabold font-mono transition-all shadow-2xs active:scale-95"
+          title="Export standard sustained block chords (Format 0)"
         >
-          {copiedJson ? <Check className="w-4 h-4 text-emerald-600" /> : <Code className="w-4 h-4" />}
-          <span>{copiedJson ? 'JSON Copied!' : 'Copy Progression JSON'}</span>
+          {midiSuccess ? <Check className="w-4 h-4 text-emerald-600" /> : <Music className="w-4 h-4 text-slate-700" />}
+          <span>{midiSuccess ? 'MIDI Downloaded!' : 'Pad MIDI (SMF 0)'}</span>
+        </button>
+
+        <button
+          onClick={handleExportGroovingMidi}
+          className="flex items-center justify-center gap-2 py-3 px-3 rounded-xl border-2 border-[#c84b31] bg-[#fdf0ec] text-[#c84b31] hover:bg-[#c84b31] hover:text-white text-xs sm:text-sm font-extrabold font-mono transition-all shadow-2xs active:scale-95"
+          title="Export multi-track arrangement with drums, bass, and rhythmic chords (Format 1)"
+        >
+          {multiTrackSuccess ? <Check className="w-4 h-4 text-emerald-600" /> : <Sparkles className="w-4 h-4" />}
+          <span>{multiTrackSuccess ? 'Multi-Track Saved!' : 'Grooving MIDI (SMF 1)'}</span>
         </button>
       </div>
     </div>
   );
 };
+

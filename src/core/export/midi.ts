@@ -134,6 +134,143 @@ export function buildMidiFile(
   return new Uint8Array([...headerChunk, ...trackChunk]);
 }
 
+export interface MultiTrackNote {
+  tick: number; // in atomic time units (e.g. 1 unit = 16th note, 4 units = quarter note)
+  durationUnits: number;
+  pitches: number[];
+  velocity?: number;
+  gateRatio?: number;
+}
+
+export interface MultiTrackDefinition {
+  name: string;
+  channel: number; // 0 to 15 (e.g. 0 = chords, 1 = bass, 9 = GM drums)
+  notes: MultiTrackNote[];
+}
+
+/**
+ * Builds a multi-track Standard MIDI File (SMF Format 1) with separated channels
+ */
+export function buildMultiTrackMidiFile(
+  tracks: MultiTrackDefinition[],
+  bpm: number = 120,
+  masterName: string = 'Schillinger Studio Arrangement'
+): Uint8Array {
+  const ticksPerQuarter = 480;
+  const ticksPerUnit = ticksPerQuarter / 4; // 120 ticks per atomic unit
+
+  const allChunks: number[] = [];
+
+  // Track 0: Conductor Track (Tempo, Time Signature, Master Name)
+  const conductorEvents: number[] = [];
+  const masterNameBytes = strToBytes(masterName);
+  conductorEvents.push(0x00, 0xff, 0x03, masterNameBytes.length, ...masterNameBytes);
+
+  // Time signature 4/4 (Delta 0, FF 58 04 04 02 18 08)
+  conductorEvents.push(0x00, 0xff, 0x58, 0x04, 0x04, 0x02, 0x18, 0x08);
+
+  // Set Tempo (FF 51 03)
+  const microsecondsPerQuarter = Math.round(60000000 / bpm);
+  conductorEvents.push(
+    0x00,
+    0xff,
+    0x51,
+    0x03,
+    (microsecondsPerQuarter >> 16) & 0xff,
+    (microsecondsPerQuarter >> 8) & 0xff,
+    microsecondsPerQuarter & 0xff
+  );
+
+  // End of Conductor Track
+  conductorEvents.push(0x00, 0xff, 0x2f, 0x00);
+
+  const conductorChunk = [
+    ...strToBytes('MTrk'),
+    ...write32(conductorEvents.length),
+    ...conductorEvents,
+  ];
+
+  // Build each instrument track
+  const instrumentChunks: number[][] = [];
+
+  for (const trk of tracks) {
+    const trkEvents: number[] = [];
+    const trkNameBytes = strToBytes(trk.name);
+    trkEvents.push(0x00, 0xff, 0x03, trkNameBytes.length, ...trkNameBytes);
+
+    // Collect discrete note ON and note OFF events
+    interface RawEvent {
+      tick: number;
+      isOff: boolean;
+      pitch: number;
+      velocity: number;
+    }
+
+    const rawList: RawEvent[] = [];
+
+    for (const note of trk.notes) {
+      const startTick = Math.round(note.tick * ticksPerUnit);
+      const totalTicks = Math.max(10, Math.round(note.durationUnits * ticksPerUnit));
+      const gateTicks = Math.max(10, Math.round(totalTicks * (note.gateRatio ?? 0.85)));
+      const endTick = startTick + gateTicks;
+      const vel = note.velocity ?? 85;
+
+      for (const p of note.pitches) {
+        rawList.push({ tick: startTick, isOff: false, pitch: p, velocity: vel });
+        rawList.push({ tick: endTick, isOff: true, pitch: p, velocity: 0 });
+      }
+    }
+
+    // Sort events by tick time (note OFFs precede note ONs if at identical tick)
+    rawList.sort((a, b) => {
+      if (a.tick !== b.tick) return a.tick - b.tick;
+      if (a.isOff !== b.isOff) return a.isOff ? -1 : 1;
+      return a.pitch - b.pitch;
+    });
+
+    let lastTick = 0;
+    const channelNibble = trk.channel & 0x0f;
+
+    for (const ev of rawList) {
+      const delta = Math.max(0, ev.tick - lastTick);
+      trkEvents.push(...writeVarLen(delta));
+      if (ev.isOff) {
+        trkEvents.push(0x80 | channelNibble, ev.pitch, 0x00);
+      } else {
+        trkEvents.push(0x90 | channelNibble, ev.pitch, ev.velocity);
+      }
+      lastTick = ev.tick;
+    }
+
+    // End of Track
+    trkEvents.push(0x00, 0xff, 0x2f, 0x00);
+
+    instrumentChunks.push([
+      ...strToBytes('MTrk'),
+      ...write32(trkEvents.length),
+      ...trkEvents,
+    ]);
+  }
+
+  // Header chunk: Format 1, (1 conductor + tracks.length) tracks
+  const totalTrackCount = 1 + tracks.length;
+  const headerChunk = [
+    ...strToBytes('MThd'),
+    ...write32(6),
+    ...write16(1), // Format 1
+    ...write16(totalTrackCount),
+    ...write16(ticksPerQuarter),
+  ];
+
+  allChunks.push(...headerChunk);
+  allChunks.push(...conductorChunk);
+  for (const ic of instrumentChunks) {
+    allChunks.push(...ic);
+  }
+
+  return new Uint8Array(allChunks);
+}
+
 /**
  * Initiates browser download of MIDI file
  */
@@ -154,3 +291,25 @@ export function downloadMidiFile(
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
+
+/**
+ * Initiates browser download of multi-track MIDI file (SMF Format 1)
+ */
+export function downloadMultiTrackMidiFile(
+  tracks: MultiTrackDefinition[],
+  filename: string,
+  bpm: number = 120,
+  masterName?: string
+) {
+  const bytes = buildMultiTrackMidiFile(tracks, bpm, masterName);
+  const blob = new Blob([bytes.buffer as ArrayBuffer], { type: 'audio/midi' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename.endsWith('.mid') ? filename : `${filename}.mid`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
