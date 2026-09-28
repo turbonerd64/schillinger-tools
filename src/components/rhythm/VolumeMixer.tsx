@@ -12,7 +12,8 @@ export const VolumeMixer: React.FC<VolumeMixerProps> = ({ is3Part }) => {
     a: { muted: false, solo: false, volume: 0.8 },
     b: { muted: false, solo: false, volume: 0.8 },
     c: { muted: false, solo: false, volume: 0.8 },
-    resultant: { muted: false, solo: false, volume: 0.95 },
+    resultant: { muted: false, solo: false, volume: 0.9 },
+    accent: { muted: false, solo: false, volume: 0.85 },
   });
 
   const handleMasterVolume = (vol: number) => {
@@ -20,7 +21,7 @@ export const VolumeMixer: React.FC<VolumeMixerProps> = ({ is3Part }) => {
     audioService.setMasterVolume(vol);
   };
 
-  const toggleMute = (channel: 'a' | 'b' | 'c' | 'resultant') => {
+  const toggleMute = (channel: 'a' | 'b' | 'c' | 'resultant' | 'accent') => {
     const nextMuted = !mixerState[channel].muted;
     setMixerState((prev) => ({
       ...prev,
@@ -29,7 +30,7 @@ export const VolumeMixer: React.FC<VolumeMixerProps> = ({ is3Part }) => {
     audioService.channels[channel].muted = nextMuted;
   };
 
-  const handleVolume = (channel: 'a' | 'b' | 'c' | 'resultant', vol: number) => {
+  const handleVolume = (channel: 'a' | 'b' | 'c' | 'resultant' | 'accent', vol: number) => {
     setMixerState((prev) => ({
       ...prev,
       [channel]: { ...prev[channel], volume: vol },
@@ -67,7 +68,7 @@ export const VolumeMixer: React.FC<VolumeMixerProps> = ({ is3Part }) => {
       </div>
 
       {/* Compact Channel Sliders */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+      <div className={`grid grid-cols-1 sm:grid-cols-2 ${is3Part ? 'lg:grid-cols-5' : 'lg:grid-cols-4'} gap-3`}>
         {/* Gen a */}
         <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-1.5">
           <div className="flex items-center justify-between text-xs font-bold font-mono">
@@ -122,33 +123,6 @@ export const VolumeMixer: React.FC<VolumeMixerProps> = ({ is3Part }) => {
           />
         </div>
 
-        {/* Resultant r */}
-        <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-1.5">
-          <div className="flex items-center justify-between text-xs font-bold font-mono">
-            <span className="text-[#c84b31] flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-[#c84b31]"></span>
-              Resultant r
-            </span>
-            <button
-              onClick={() => toggleMute('resultant')}
-              className={`px-1.5 py-0.5 text-[9px] font-bold rounded ${
-                mixerState.resultant.muted ? 'bg-red-500 text-white' : 'bg-white border border-slate-300 text-slate-600'
-              }`}
-            >
-              MUTE
-            </button>
-          </div>
-          <input
-            type="range"
-            min={0}
-            max={1}
-            step={0.05}
-            value={mixerState.resultant.volume}
-            onChange={(e) => handleVolume('resultant', parseFloat(e.target.value))}
-            className="w-full h-1 bg-slate-200 rounded appearance-none accent-[#c84b31] cursor-pointer"
-          />
-        </div>
-
         {/* Gen c (if 3-part) */}
         {is3Part && (
           <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-1.5">
@@ -177,6 +151,60 @@ export const VolumeMixer: React.FC<VolumeMixerProps> = ({ is3Part }) => {
             />
           </div>
         )}
+
+        {/* Resultant r */}
+        <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-1.5">
+          <div className="flex items-center justify-between text-xs font-bold font-mono">
+            <span className="text-[#c84b31] flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-[#c84b31]"></span>
+              Resultant r
+            </span>
+            <button
+              onClick={() => toggleMute('resultant')}
+              className={`px-1.5 py-0.5 text-[9px] font-bold rounded ${
+                mixerState.resultant.muted ? 'bg-red-500 text-white' : 'bg-white border border-slate-300 text-slate-600'
+              }`}
+            >
+              MUTE
+            </button>
+          </div>
+          <input
+            type="range"
+            min={0}
+            max={1}
+            step={0.05}
+            value={mixerState.resultant.volume}
+            onChange={(e) => handleVolume('resultant', parseFloat(e.target.value))}
+            className="w-full h-1 bg-slate-200 rounded appearance-none accent-[#c84b31] cursor-pointer"
+          />
+        </div>
+
+        {/* Phase Accent (Coincidence) */}
+        <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-1.5">
+          <div className="flex items-center justify-between text-xs font-bold font-mono">
+            <span className="text-amber-800 flex items-center gap-1.5" title="Resonant metallic strike on simultaneous generator phase coincidences">
+              <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+              Phase Accent
+            </span>
+            <button
+              onClick={() => toggleMute('accent')}
+              className={`px-1.5 py-0.5 text-[9px] font-bold rounded ${
+                mixerState.accent.muted ? 'bg-red-500 text-white' : 'bg-white border border-slate-300 text-slate-600'
+              }`}
+            >
+              MUTE
+            </button>
+          </div>
+          <input
+            type="range"
+            min={0}
+            max={1}
+            step={0.05}
+            value={mixerState.accent.volume}
+            onChange={(e) => handleVolume('accent', parseFloat(e.target.value))}
+            className="w-full h-1 bg-slate-200 rounded appearance-none accent-amber-500 cursor-pointer"
+          />
+        </div>
       </div>
     </div>
   );

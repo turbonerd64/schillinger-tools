@@ -27,6 +27,7 @@ export const TransportMixer: React.FC<TransportMixerProps> = ({
     b: { muted: false, solo: false, volume: 0.8 },
     c: { muted: false, solo: false, volume: 0.8 },
     resultant: { muted: false, solo: false, volume: 0.95 },
+    accent: { muted: false, solo: false, volume: 0.85 },
   });
 
   const handleTapTempo = () => {
@@ -48,7 +49,7 @@ export const TransportMixer: React.FC<TransportMixerProps> = ({
     }
   };
 
-  const toggleMute = (channel: 'a' | 'b' | 'c' | 'resultant') => {
+  const toggleMute = (channel: 'a' | 'b' | 'c' | 'resultant' | 'accent') => {
     const nextMuted = !mixerState[channel].muted;
     setMixerState((prev) => ({
       ...prev,
@@ -57,7 +58,7 @@ export const TransportMixer: React.FC<TransportMixerProps> = ({
     audioService.channels[channel].muted = nextMuted;
   };
 
-  const toggleSolo = (channel: 'a' | 'b' | 'c' | 'resultant') => {
+  const toggleSolo = (channel: 'a' | 'b' | 'c' | 'resultant' | 'accent') => {
     const nextSolo = !mixerState[channel].solo;
     setMixerState((prev) => ({
       ...prev,
@@ -66,7 +67,7 @@ export const TransportMixer: React.FC<TransportMixerProps> = ({
     audioService.channels[channel].solo = nextSolo;
   };
 
-  const handleVolume = (channel: 'a' | 'b' | 'c' | 'resultant', vol: number) => {
+  const handleVolume = (channel: 'a' | 'b' | 'c' | 'resultant' | 'accent', vol: number) => {
     setMixerState((prev) => ({
       ...prev,
       [channel]: { ...prev[channel], volume: vol },

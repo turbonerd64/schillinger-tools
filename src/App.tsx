@@ -98,36 +98,44 @@ export function App() {
 
   // Load timeline events into Web Audio scheduler
   const syncAudioTimeline = useCallback(() => {
-    const events: Array<{ tick: number; channel: 'a' | 'b' | 'c' | 'resultant'; isAccented: boolean }> = [];
+    const events: Array<{ tick: number; channel: 'a' | 'b' | 'c' | 'resultant' | 'accent'; isAccented: boolean }> = [];
 
     // Lane A attacks
     resultant.lanes.find((l) => l.id === 'a')?.attackTicks.forEach((tick) => {
-      events.push({ tick, channel: 'a', isAccented: tick === 0 });
+      events.push({ tick, channel: 'a', isAccented: false });
     });
 
     // Lane B attacks (including fractioned b_1, b_2, etc.)
     resultant.lanes.filter((l) => l.id.startsWith('b')).forEach((lane) => {
       lane.attackTicks.forEach((tick) => {
-        events.push({ tick, channel: 'b', isAccented: tick === 0 });
+        events.push({ tick, channel: 'b', isAccented: false });
       });
     });
 
     // Lane C attacks if trinomial
     if (mode === 'trinomial') {
       resultant.lanes.find((l) => l.id === 'c')?.attackTicks.forEach((tick) => {
-        events.push({ tick, channel: 'c', isAccented: tick === 0 });
+        events.push({ tick, channel: 'c', isAccented: false });
       });
     }
 
-    // Resultant attacks
+    // Resultant attacks + Phase Coincidence Accents
     let currentTick = 0;
     const accentSet = new Set(displayedAccents);
     displayedDurations.forEach((dur, idx) => {
+      const isAccented = accentSet.has(idx);
       events.push({
         tick: currentTick,
         channel: 'resultant',
-        isAccented: accentSet.has(idx),
+        isAccented,
       });
+      if (isAccented) {
+        events.push({
+          tick: currentTick,
+          channel: 'accent',
+          isAccented: true,
+        });
+      }
       currentTick += dur;
     });
 
