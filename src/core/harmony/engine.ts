@@ -96,6 +96,13 @@ export const CHORD_QUALITY_MAP: Record<string, string> = {
   "0,2,4,7,10": "9",
   "0,2,3,7,10": "m9",
   "0,1,3,7,10": "m7b9",
+  "0,1,3,6,10": "m7b5b9",
+  "0,2,3,6,10": "m9b5",
+  "0,2,4,8,11": "maj9#5",
+  "0,2,4,8,10": "9#5",
+  "0,1,4,7,10": "7b9",
+  "0,3,4,7,10": "7#9",
+  "0,1,3,6,9":  "dim7b9",
 };
 
 export interface ChordItem {
@@ -107,12 +114,14 @@ export interface ChordItem {
   chordName: string;
   quality: string;
   pitchClasses: number[];
-  voicedMidiNotes: number[]; // Result of greedy voice leading
+  voicedMidiNotes: number[]; // Result of voice leading
   romanNumeral: string;
   sourceScaleId: string;
   sourceScaleName: string;
   sourceColor: string;
   isCustomBorrowed?: boolean;
+  structure?: ChordStructureType;
+  isCustomDensity?: boolean;
 }
 
 const ROMAN_NUMERALS = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII'];
@@ -261,6 +270,7 @@ export function generateRailChords(
       sourceScaleId: scaleDef.id,
       sourceScaleName: scaleDef.name,
       sourceColor: scaleDef.color,
+      structure,
     });
 
     // Advance root for next step
@@ -287,8 +297,59 @@ export function generateRailChords(
 }
 
 /**
+ * Rebuilds a chord item with a new density / structure (S5 Triad, S7 Seventh, S9 Ninth)
+ * Preserves root pitch class and modal source while updating pitch classes and symbol.
+ */
+export function rebuildChordWithStructure(
+  chord: ChordItem,
+  newStructure: ChordStructureType,
+  tonicRoot: number,
+  harmonySystem: HarmonySystemType = 'diatonic',
+  invariantStructureQuality?: string
+): ChordItem {
+  const scaleDef = PARENT_SCALES.find((s) => s.id === chord.sourceScaleId) || PARENT_SCALES[0];
+  const scalePitches = scaleDef.intervals.map((int) => (tonicRoot + int) % 12);
+  const isFlatScale = ['phrygian', 'aeolian', 'dorian', 'locrian', 'harmonic_minor', 'neapolitan_minor'].includes(scaleDef.id) || [1, 3, 5, 8, 10].includes(tonicRoot);
+  const names = isFlatScale ? NOTE_NAMES_FLAT : NOTE_NAMES;
+
+  let pitchClasses: number[];
+  const rootPC = chord.rootPitchClass;
+
+  if (harmonySystem === 'symmetric' || harmonySystem === 'diatonic_symmetric') {
+    const deltas = invariantStructureQuality === 'm' || invariantStructureQuality === 'm7'
+      ? (newStructure === 'S5' ? [0, 3, 7] : newStructure === 'S7' ? [0, 3, 7, 10] : [0, 3, 7, 10, 14])
+      : invariantStructureQuality === '7'
+      ? (newStructure === 'S5' ? [0, 4, 7] : newStructure === 'S7' ? [0, 4, 7, 10] : [0, 4, 7, 10, 14])
+      : (newStructure === 'S5' ? [0, 4, 7] : newStructure === 'S7' ? [0, 4, 7, 11] : [0, 4, 7, 11, 14]);
+    pitchClasses = deltas.map((d) => (rootPC + d) % 12);
+  } else {
+    // Type I Diatonic
+    pitchClasses = buildChord(scalePitches, chord.degreeIndex, newStructure);
+  }
+
+  const { quality, fullName } = identifyChord(pitchClasses, isFlatScale);
+  const baseRoman = ROMAN_NUMERALS[chord.degreeIndex % ROMAN_NUMERALS.length] || `${chord.degreeIndex + 1}`;
+  let roman = baseRoman;
+  if (quality === 'm' || quality === 'm7' || quality === 'm9') {
+    roman = baseRoman.toLowerCase();
+  } else if (quality === 'dim' || quality === 'm7b5' || quality === 'dim7' || quality.includes('dim')) {
+    roman = quality === 'm7b5' ? `${baseRoman.toLowerCase()}ø` : `${baseRoman.toLowerCase()}°`;
+  }
+
+  return {
+    ...chord,
+    structure: newStructure,
+    pitchClasses,
+    chordName: fullName,
+    quality,
+    romanNumeral: roman,
+    isCustomDensity: true,
+  };
+}
+
+/**
  * Schillinger Algebraic Voice-Leading Engine (Book V, Chapter 2 Sections C, D, E)
- * Supports:
+ * Supports heterogeneous chord densities (S5, S7, S9) smoothly across transitions:
  * - 'schillinger_cw': Clockwise permutation transformation (T_cw: 1 -> 3 -> 5 -> 7 -> 1)
  * - 'schillinger_ccw': Counterclockwise permutation transformation (T_ccw: 1 -> 7 -> 5 -> 3 -> 1)
  * - 'schillinger_const': Constant function transformation (T_const: common tones held static in voice)
@@ -337,8 +398,9 @@ export function applySchillingerVoiceLeading(
     if (mode === 'schillinger_cw') {
       // Clockwise Transformation (T_cw):
       // Each voice cyclically shifts its factor role forward: 1 -> 3 -> 5 -> 7 -> 1
-      upperMidi = prevUpper.map((prevNote, vIdx) => {
-        const targetPc = upperPcs[(vIdx + 1) % numUpper];
+      upperMidi = upperPcs.map((_, idx) => {
+        const targetPc = upperPcs[(idx + 1) % numUpper];
+        const prevNote = prevUpper[idx % prevUpper.length];
         let bestMidi = targetPc + 4 * 12;
         let minDiff = 999;
         for (let oct = 3; oct <= 6; oct++) {
@@ -356,8 +418,9 @@ export function applySchillingerVoiceLeading(
     } else if (mode === 'schillinger_ccw') {
       // Counterclockwise Transformation (T_ccw):
       // Each voice cyclically shifts its factor role backward: 1 -> 7 -> 5 -> 3 -> 1
-      upperMidi = prevUpper.map((prevNote, vIdx) => {
-        const targetPc = upperPcs[(vIdx - 1 + numUpper) % numUpper];
+      upperMidi = upperPcs.map((_, idx) => {
+        const targetPc = upperPcs[(idx - 1 + numUpper) % numUpper];
+        const prevNote = prevUpper[idx % prevUpper.length];
         let bestMidi = targetPc + 4 * 12;
         let minDiff = 999;
         for (let oct = 3; oct <= 6; oct++) {
@@ -375,13 +438,14 @@ export function applySchillingerVoiceLeading(
     } else if (mode === 'schillinger_const') {
       // Constant Tone Transformation (T_const):
       // Retain common pitch classes statically in the exact same voice pitch
-      const assignedTargetIdxs = new Set<number>();
-      upperMidi = prevUpper.map((prevNote) => {
-        const prevPc = prevNote % 12;
-        const matchingIdx = upperPcs.findIndex((pc, idx) => pc === prevPc && !assignedTargetIdxs.has(idx));
-        if (matchingIdx !== -1) {
-          assignedTargetIdxs.add(matchingIdx);
-          return prevNote; // Keep constant pitch!
+      const assignedPrevNotes = new Set<number>();
+      upperMidi = upperPcs.map((targetPc) => {
+        const matchingPrev = prevUpper.find(
+          (prevNote) => (prevNote % 12) === targetPc && !assignedPrevNotes.has(prevNote)
+        );
+        if (matchingPrev !== undefined) {
+          assignedPrevNotes.add(matchingPrev);
+          return matchingPrev; // Retain constant pitch
         }
         return -1;
       });
@@ -389,12 +453,12 @@ export function applySchillingerVoiceLeading(
       // Fill remaining voices smoothly
       upperMidi = upperMidi.map((note, vIdx) => {
         if (note !== -1) return note;
-        const prevNote = prevUpper[vIdx];
-        const unassignedPc = upperPcs.find((_, idx) => !assignedTargetIdxs.has(idx)) ?? upperPcs[0];
-        let bestMidi = unassignedPc + 4 * 12;
+        const targetPc = upperPcs[vIdx];
+        const prevNote = prevUpper[vIdx % prevUpper.length];
+        let bestMidi = targetPc + 4 * 12;
         let minDiff = 999;
         for (let oct = 3; oct <= 6; oct++) {
-          const cand = unassignedPc + oct * 12;
+          const cand = targetPc + oct * 12;
           if (cand >= 50 && cand <= 84) {
             const diff = Math.abs(cand - prevNote);
             if (diff < minDiff) {

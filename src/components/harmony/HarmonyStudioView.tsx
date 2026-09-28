@@ -10,6 +10,7 @@ import {
   ChordItem,
   generateRailChords,
   applySchillingerVoiceLeading,
+  rebuildChordWithStructure,
 } from '../../core/harmony/engine';
 import {
   getHarmonyPresetById,
@@ -125,11 +126,26 @@ export const HarmonyStudioView: React.FC<HarmonyStudioViewProps> = ({
         return baseChords;
       }
 
-      // Preserve modal interchange assignments across each step!
+      // Preserve modal interchange and custom density assignments across each step!
       const updated = prev.map((oldChord, idx) => {
         const sourceScaleId = oldChord.sourceScaleId || 'ionian';
         const sourceRail = railChordsMap[sourceScaleId] || baseChords;
         const freshChord = sourceRail[idx] || baseChords[idx];
+        if (oldChord.isCustomDensity && oldChord.structure) {
+          const rebuilt = rebuildChordWithStructure(
+            freshChord,
+            oldChord.structure,
+            tonicRoot,
+            harmonySystem,
+            invariantQuality
+          );
+          return {
+            ...rebuilt,
+            stepIndex: idx,
+            isCustomBorrowed: oldChord.isCustomBorrowed,
+            isCustomDensity: true,
+          };
+        }
         return {
           ...freshChord,
           stepIndex: idx,
@@ -143,7 +159,7 @@ export const HarmonyStudioView: React.FC<HarmonyStudioViewProps> = ({
     if (onChordCountUpdate) {
       onChordCountUpdate(baseChords.length);
     }
-  }, [railChordsMap, voiceLeadingMode]);
+  }, [railChordsMap, voiceLeadingMode, tonicRoot, harmonySystem, invariantQuality]);
 
   const playTimerRef = useRef<number | null>(null);
   const currentChord = masterChords[selectedChordIndex] || masterChords[0];
@@ -157,17 +173,48 @@ export const HarmonyStudioView: React.FC<HarmonyStudioViewProps> = ({
   };
 
   const handleSwapChord = (stepIdx: number, newChord: ChordItem) => {
+    const currentChordAtStep = masterChords[stepIdx];
+    let chordToInsert = newChord;
+    if (currentChordAtStep?.isCustomDensity && currentChordAtStep.structure) {
+      chordToInsert = rebuildChordWithStructure(
+        chordToInsert,
+        currentChordAtStep.structure,
+        tonicRoot,
+        harmonySystem,
+        invariantQuality
+      );
+    }
     const updated = [...masterChords];
     updated[stepIdx] = {
-      ...newChord,
+      ...chordToInsert,
       stepIndex: stepIdx,
       isCustomBorrowed: true,
     };
     const reVoiced = applySchillingerVoiceLeading(updated, voiceLeadingMode);
     setMasterChords(reVoiced);
     setSelectedChordIndex(stepIdx);
-    setSelectedChordId(newChord.id);
+    setSelectedChordId(chordToInsert.id);
     audioService.playVoicedChord(reVoiced[stepIdx].voicedMidiNotes, 0.8, 'piano');
+  };
+
+  const handleApplyDensity = (newStructure: ChordStructureType, startIndex: number, endIndex: number) => {
+    const updated = [...masterChords];
+    for (let i = startIndex; i <= endIndex && i < updated.length; i++) {
+      if (updated[i]) {
+        updated[i] = rebuildChordWithStructure(
+          updated[i],
+          newStructure,
+          tonicRoot,
+          harmonySystem,
+          invariantQuality
+        );
+      }
+    }
+    const reVoiced = applySchillingerVoiceLeading(updated, voiceLeadingMode);
+    setMasterChords(reVoiced);
+    if (reVoiced[startIndex]?.voicedMidiNotes) {
+      audioService.playVoicedChord(reVoiced[startIndex].voicedMidiNotes, 0.8, 'piano');
+    }
   };
 
   const handleApplyChunkMode = (scale: ScaleDefinition, startIndex: number, endIndex: number) => {
@@ -259,6 +306,7 @@ export const HarmonyStudioView: React.FC<HarmonyStudioViewProps> = ({
         onApplyChunkMode={handleApplyChunkMode}
         railChordsMap={railChordsMap}
         onSwapChord={handleSwapChord}
+        onApplyDensity={handleApplyDensity}
       />
 
       {/* 3. PARALLEL MODE RAILS (For comparative reference & chord borrowing) */}

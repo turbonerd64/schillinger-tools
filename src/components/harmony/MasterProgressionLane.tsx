@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ChordItem, ScaleDefinition } from '../../core/harmony/engine';
-import { ArrowLeftRight, Check, X, MousePointerClick } from 'lucide-react';
+import { ChordItem, ScaleDefinition, ChordStructureType } from '../../core/harmony/engine';
+import { ArrowLeftRight, Check, X, MousePointerClick, Layers } from 'lucide-react';
 
 interface MasterProgressionLaneProps {
   masterChords: ChordItem[];
@@ -10,6 +10,7 @@ interface MasterProgressionLaneProps {
   onApplyChunkMode: (scale: ScaleDefinition, startIndex: number, endIndex: number) => void;
   railChordsMap: Record<string, ChordItem[]>;
   onSwapChord: (stepIdx: number, newChord: ChordItem) => void;
+  onApplyDensity?: (structure: ChordStructureType, startIndex: number, endIndex: number) => void;
 }
 
 export const MasterProgressionLane: React.FC<MasterProgressionLaneProps> = ({
@@ -20,6 +21,7 @@ export const MasterProgressionLane: React.FC<MasterProgressionLaneProps> = ({
   onApplyChunkMode,
   railChordsMap,
   onSwapChord,
+  onApplyDensity,
 }) => {
   // Range selection [startIndex, endIndex]
   const [selectedRange, setSelectedRange] = useState<[number, number] | null>(null);
@@ -111,7 +113,7 @@ export const MasterProgressionLane: React.FC<MasterProgressionLaneProps> = ({
           </h3>
           <p className="text-xs sm:text-sm text-slate-500 mt-0.5 flex items-center gap-1.5">
             <MousePointerClick className="w-3.5 h-3.5 text-[#c84b31]" />
-            <span>Click or drag across a chunk of chords to batch-swap them into any parallel mode.</span>
+            <span>Click or drag across chords to adjust density (triad/7th/9th) or swap modes.</span>
           </p>
         </div>
 
@@ -187,8 +189,13 @@ export const MasterProgressionLane: React.FC<MasterProgressionLaneProps> = ({
                   }`}
                   title={`Click or drag to select • Source: ${chord.sourceScaleName}`}
                 >
+                  {/* Density pill badge */}
+                  <span className="absolute top-1 sm:top-1.5 left-1 sm:left-1.5 text-[7px] sm:text-[9px] font-black uppercase tracking-wider px-1 py-0.2 rounded bg-black/40 text-white/90">
+                    {chord.structure || 'S7'}
+                  </span>
+
                   {/* Chord Symbol */}
-                  <div className="text-xs sm:text-lg font-black tracking-tight drop-shadow-xs">
+                  <div className="text-xs sm:text-lg font-black tracking-tight drop-shadow-xs mt-1 sm:mt-1.5">
                     {chord.chordName}
                   </div>
                   {/* Roman Numeral */}
@@ -241,12 +248,12 @@ export const MasterProgressionLane: React.FC<MasterProgressionLaneProps> = ({
               <div>
                 <span className="text-xs font-extrabold font-mono uppercase tracking-wider text-[#c84b31] block">
                   {isRange
-                    ? `Batch Swap: Chords #${selectedRange[0] + 1} – #${selectedRange[1] + 1}`
-                    : `Modal Interchange • Chord #${selectedRange[0] + 1}`}
+                    ? `Batch Edit: Chords #${selectedRange[0] + 1} to #${selectedRange[1] + 1}`
+                    : `Chord Inspector: Chord #${selectedRange[0] + 1}`}
                 </span>
                 <span className="text-[11px] font-mono text-slate-500">
                   {isRange
-                    ? `Swapping ${selectedRange[1] - selectedRange[0] + 1} chords simultaneously`
+                    ? `Customizing ${selectedRange[1] - selectedRange[0] + 1} chords simultaneously`
                     : activeSingleChord
                     ? `Current: ${activeSingleChord.chordName} (${activeSingleChord.sourceScaleName})`
                     : ''}
@@ -260,64 +267,113 @@ export const MasterProgressionLane: React.FC<MasterProgressionLaneProps> = ({
               </button>
             </div>
 
+            {/* Chord Density Selection */}
+            {onApplyDensity && (
+              <div className="space-y-1.5 border-b-2 border-slate-100 pb-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-extrabold font-mono uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
+                    <Layers className="w-3.5 h-3.5 text-[#c84b31]" />
+                    Chord Density (Structure)
+                  </span>
+                  <span className="text-[10px] font-mono font-bold text-slate-400">
+                    Book V
+                  </span>
+                </div>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {[
+                    { id: 'S5', label: 'Triad', sub: '3 notes' },
+                    { id: 'S7', label: '7th', sub: '4 notes' },
+                    { id: 'S9', label: '9th', sub: '5 notes' },
+                  ].map((item) => {
+                    const isActive = !isRange && activeSingleChord?.structure === item.id;
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => {
+                          if (selectedRange !== null) {
+                            onApplyDensity(item.id as ChordStructureType, selectedRange[0], selectedRange[1]);
+                          }
+                        }}
+                        className={`py-1.5 px-1 rounded-xl text-xs font-extrabold font-mono border-2 transition-all flex flex-col items-center justify-center ${
+                          isActive
+                            ? 'bg-[#c84b31] border-[#c84b31] text-white shadow-2xs'
+                            : 'bg-slate-50 border-slate-200 text-slate-700 hover:border-slate-800 hover:bg-white'
+                        }`}
+                      >
+                        <span>{item.label}</span>
+                        <span className={`text-[9px] font-sans font-medium ${isActive ? 'text-white/80' : 'text-slate-400'}`}>
+                          {item.id}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* Scale Options Grid */}
-            <div className="space-y-1.5 max-h-60 overflow-y-auto pr-1">
-              {availableScales.map((scale) => {
-                const singleAltChord = !isRange && selectedRange !== null
-                  ? railChordsMap[scale.id]?.[selectedRange[0]]
-                  : null;
+            <div className="space-y-1.5">
+              <span className="text-xs font-extrabold font-mono uppercase tracking-wider text-slate-800 block">
+                Modal Interchange (Scale)
+              </span>
+              <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                {availableScales.map((scale) => {
+                  const singleAltChord = !isRange && selectedRange !== null
+                    ? railChordsMap[scale.id]?.[selectedRange[0]]
+                    : null;
 
-                const isCurrentMode = !isRange && activeSingleChord?.sourceScaleId === scale.id;
+                  const isCurrentMode = !isRange && activeSingleChord?.sourceScaleId === scale.id;
 
-                return (
-                  <button
-                    key={scale.id}
-                    onClick={() => {
-                      if (selectedRange !== null) {
-                        if (isRange) {
-                          onApplyChunkMode(scale, selectedRange[0], selectedRange[1]);
-                        } else if (singleAltChord) {
-                          onSwapChord(selectedRange[0], singleAltChord);
+                  return (
+                    <button
+                      key={scale.id}
+                      onClick={() => {
+                        if (selectedRange !== null) {
+                          if (isRange) {
+                            onApplyChunkMode(scale, selectedRange[0], selectedRange[1]);
+                          } else if (singleAltChord) {
+                            onSwapChord(selectedRange[0], singleAltChord);
+                          }
                         }
-                      }
-                      closePopover();
-                    }}
-                    className={`w-full flex items-center justify-between p-2.5 rounded-xl border-2 transition-all text-left font-mono ${
-                      isCurrentMode
-                        ? 'bg-slate-900 border-slate-900 text-white font-bold'
-                        : 'bg-slate-50 border-slate-200 text-slate-800 hover:bg-white hover:border-slate-900 hover:shadow-xs'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <span
-                        className="w-3.5 h-3.5 rounded-full inline-block border border-slate-900"
-                        style={{ backgroundColor: scale.color }}
-                      />
-                      <span className="text-xs sm:text-sm font-extrabold">
-                        {scale.name}
-                      </span>
-                    </div>
-
-                    {!isRange && singleAltChord && (
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-xs font-bold text-[#c84b31]">
-                          {singleAltChord.chordName}
+                        closePopover();
+                      }}
+                      className={`w-full flex items-center justify-between p-2.5 rounded-xl border-2 transition-all text-left font-mono ${
+                        isCurrentMode
+                          ? 'bg-slate-900 border-slate-900 text-white font-bold'
+                          : 'bg-slate-50 border-slate-200 text-slate-800 hover:bg-white hover:border-slate-900 hover:shadow-xs'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="w-3.5 h-3.5 rounded-full inline-block border border-slate-900"
+                          style={{ backgroundColor: scale.color }}
+                        />
+                        <span className="text-xs sm:text-sm font-extrabold">
+                          {scale.name}
                         </span>
-                        <span className="text-[11px] opacity-75">
-                          ({singleAltChord.romanNumeral})
-                        </span>
-                        {isCurrentMode && <Check className="w-3.5 h-3.5 text-white ml-1" />}
                       </div>
-                    )}
 
-                    {isRange && (
-                      <span className="text-[11px] font-bold text-slate-500 uppercase">
-                        Apply to {selectedRange[1] - selectedRange[0] + 1} chords
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
+                      {!isRange && singleAltChord && (
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-bold text-[#c84b31]">
+                            {singleAltChord.chordName}
+                          </span>
+                          <span className="text-[11px] opacity-75">
+                            ({singleAltChord.romanNumeral})
+                          </span>
+                          {isCurrentMode && <Check className="w-3.5 h-3.5 text-white ml-1" />}
+                        </div>
+                      )}
+
+                      {isRange && (
+                        <span className="text-[11px] font-bold text-slate-500 uppercase">
+                          Apply to {selectedRange[1] - selectedRange[0] + 1} chords
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </>

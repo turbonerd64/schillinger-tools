@@ -3,6 +3,7 @@ import {
   generateRailChords,
   applyGreedyVoiceLeading,
   applySchillingerVoiceLeading,
+  rebuildChordWithStructure,
   PARENT_SCALES,
   CYCLE_MOVES,
   identifyChord,
@@ -233,5 +234,45 @@ describe('Schillinger Harmony Engine Test Cases', () => {
     const chord2Pcs = constVoiced[1].voicedMidiNotes.slice(1).map((m) => m % 12);
     const commonPcs = chord1Pcs.filter((pc) => chord2Pcs.includes(pc));
     expect(commonPcs.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('correctly rebuilds chord density and handles heterogeneous density voice leading (S5, S7, S9)', () => {
+    // Start with C Ionian diatonic chords (S7)
+    const baseChords = generateRailChords(0, cIonian, [c3Down], 'S7', 4);
+    expect(baseChords[0].chordName).toBe('Cmaj7');
+    expect(baseChords[0].pitchClasses.length).toBe(4);
+
+    // Rebuild chord 0 into S5 (Triad)
+    const triadChord = rebuildChordWithStructure(baseChords[0], 'S5', 0);
+    expect(triadChord.chordName).toBe('C');
+    expect(triadChord.pitchClasses.length).toBe(3);
+    expect(triadChord.structure).toBe('S5');
+
+    // Rebuild chord 1 into S9 (Ninth)
+    const ninthChord = rebuildChordWithStructure(baseChords[1], 'S9', 0);
+    expect(ninthChord.chordName).toBe('Am9');
+    expect(ninthChord.pitchClasses.length).toBe(5);
+    expect(ninthChord.structure).toBe('S9');
+
+    // Voice lead heterogeneous sequence: Triad (3) -> 9th (5) -> 7th (4) -> Triad (3)
+    const heterogeneous = [
+      triadChord,
+      ninthChord,
+      baseChords[2], // Fmaj7 (4)
+      rebuildChordWithStructure(baseChords[3], 'S5', 0), // C (3)
+    ];
+
+    const voiced = applySchillingerVoiceLeading(heterogeneous, 'greedy');
+    expect(voiced[0].voicedMidiNotes.length).toBe(3); // 1 bass + 2 upper
+    expect(voiced[1].voicedMidiNotes.length).toBe(5); // 1 bass + 4 upper
+    expect(voiced[2].voicedMidiNotes.length).toBe(4); // 1 bass + 3 upper
+    expect(voiced[3].voicedMidiNotes.length).toBe(3); // 1 bass + 2 upper
+
+    // Verify clockwise voice leading also handles heterogeneous transitions
+    const cwVoiced = applySchillingerVoiceLeading(heterogeneous, 'schillinger_cw');
+    expect(cwVoiced[0].voicedMidiNotes.length).toBe(3);
+    expect(cwVoiced[1].voicedMidiNotes.length).toBe(5);
+    expect(cwVoiced[2].voicedMidiNotes.length).toBe(4);
+    expect(cwVoiced[3].voicedMidiNotes.length).toBe(3);
   });
 });
