@@ -63,6 +63,7 @@ export const HarmonyStudioView: React.FC<HarmonyStudioViewProps> = ({
 
   // Master progression
   const [masterChords, setMasterChords] = useState<ChordItem[]>([]);
+  const [selectedChordId, setSelectedChordId] = useState<string | null>(null);
 
   // Update master chords when core formula or length changes (WITHOUT resetting on activeRails change!)
   useEffect(() => {
@@ -99,6 +100,7 @@ export const HarmonyStudioView: React.FC<HarmonyStudioViewProps> = ({
 
   const handleSelectChord = (chord: ChordItem, stepIdx: number) => {
     setSelectedChordIndex(stepIdx);
+    setSelectedChordId(chord.id);
     if (chord.voicedMidiNotes && chord.voicedMidiNotes.length > 0) {
       audioService.playVoicedChord(chord.voicedMidiNotes, 0.8, 'piano');
     }
@@ -114,6 +116,7 @@ export const HarmonyStudioView: React.FC<HarmonyStudioViewProps> = ({
     const reVoiced = applyGreedyVoiceLeading(updated);
     setMasterChords(reVoiced);
     setSelectedChordIndex(stepIdx);
+    setSelectedChordId(newChord.id);
     audioService.playVoicedChord(reVoiced[stepIdx].voicedMidiNotes, 0.8, 'piano');
   };
 
@@ -207,6 +210,8 @@ export const HarmonyStudioView: React.FC<HarmonyStudioViewProps> = ({
         railChordsMap={railChordsMap}
         masterChords={masterChords}
         activeChordIndex={selectedChordIndex}
+        isPlaying={isPlaying}
+        selectedChordId={selectedChordId}
         onSelectChord={handleSelectChord}
         onSwapIntoMaster={(chord, stepIdx) => handleSwapChord(stepIdx, chord)}
       />

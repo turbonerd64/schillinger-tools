@@ -44,11 +44,9 @@ export const FormulaBar: React.FC<FormulaBarProps> = ({
   };
 
   const removeMove = (index: number) => {
-    if (formula.length > 1) {
-      const updated = [...formula];
-      updated.splice(index, 1);
-      setFormula(updated);
-    }
+    const updated = [...formula];
+    updated.splice(index, 1);
+    setFormula(updated);
   };
 
   const applyPreset1 = () => {
@@ -236,24 +234,30 @@ export const FormulaBar: React.FC<FormulaBarProps> = ({
             Degree I (Tonic)
           </div>
 
-          {formula.map((move, idx) => (
-            <div
-              key={`${move.id}-${idx}`}
-              className="flex items-center gap-1 pl-3.5 pr-2 py-1.5 rounded-full bg-slate-900 text-white font-mono text-xs sm:text-sm font-bold shadow-sm"
-            >
-              <span>{move.name}</span>
-              <span className="text-xs text-slate-400 font-sans ml-1 mr-1">
-                {move.id.includes('c3') ? '3rd' : move.id.includes('c5') ? '5th' : 'step'}
-              </span>
-              <button
-                onClick={() => removeMove(idx)}
-                className="w-5 h-5 rounded-full hover:bg-slate-700 flex items-center justify-center text-slate-300 hover:text-white"
-                title="Remove step"
-              >
-                &times;
-              </button>
+          {formula.length === 0 ? (
+            <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-50 border-2 border-dashed border-amber-300 text-amber-900 font-mono text-xs sm:text-sm font-bold">
+              <span>Formula empty &bull; Click + buttons above to add cycle movements</span>
             </div>
-          ))}
+          ) : (
+            formula.map((move, idx) => (
+              <div
+                key={`${move.id}-${idx}`}
+                className="flex items-center gap-1 pl-3.5 pr-2 py-1.5 rounded-full bg-slate-900 text-white font-mono text-xs sm:text-sm font-bold shadow-sm"
+              >
+                <span>{move.name}</span>
+                <span className="text-xs text-slate-400 font-sans ml-1 mr-1">
+                  {move.id.includes('c3') ? '3rd' : move.id.includes('c5') ? '5th' : 'step'}
+                </span>
+                <button
+                  onClick={() => removeMove(idx)}
+                  className="w-5 h-5 rounded-full hover:bg-slate-700 flex items-center justify-center text-slate-300 hover:text-white"
+                  title="Remove step"
+                >
+                  &times;
+                </button>
+              </div>
+            ))
+          )}
         </div>
       </div>
     </div>

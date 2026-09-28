@@ -12,6 +12,8 @@ interface ParallelModeRailsProps {
   railChordsMap: Record<string, ChordItem[]>;
   masterChords: ChordItem[];
   activeChordIndex: number;
+  isPlaying: boolean;
+  selectedChordId?: string | null;
   onSelectChord: (chord: ChordItem, stepIdx: number) => void;
   onSwapIntoMaster: (chord: ChordItem, stepIdx: number) => void;
 }
@@ -22,6 +24,8 @@ export const ParallelModeRails: React.FC<ParallelModeRailsProps> = ({
   railChordsMap,
   masterChords,
   activeChordIndex,
+  isPlaying,
+  selectedChordId,
   onSelectChord,
   onSwapIntoMaster,
 }) => {
@@ -47,7 +51,7 @@ export const ParallelModeRails: React.FC<ParallelModeRailsProps> = ({
             Parallel Mode Rails
           </h3>
           <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-            Same cyclic root movements projected through each parent scale. Click any chord to hear it or send to Master.
+            Same cyclic root movements projected through each parent scale. Click any chord to preview or double-click to swap into Master.
           </p>
         </div>
 
@@ -80,7 +84,7 @@ export const ParallelModeRails: React.FC<ParallelModeRailsProps> = ({
           return (
             <div
               key={scale.id}
-              className="border-2 border-slate-900 rounded-2xl p-4 space-y-3 shadow-2xs"
+              className="border-2 border-slate-900 rounded-xl sm:rounded-2xl p-3 sm:p-4 space-y-3 shadow-2xs"
               style={{
                 backgroundColor:
                   scale.id === 'ionian'
@@ -112,73 +116,135 @@ export const ParallelModeRails: React.FC<ParallelModeRailsProps> = ({
               </div>
 
               {/* Horizontal Scrollable Chords Sequence */}
-              <div
-                className="overflow-x-auto w-full py-2 flex items-center gap-1.5 sm:gap-3 select-none"
-                style={{ WebkitOverflowScrolling: 'touch' }}
-              >
-                {chords.map((chord, stepIdx) => {
-                  const isColumnActive = activeChordIndex === stepIdx;
-                  const masterChordAtStep = masterChords[stepIdx];
-                  const isSoundingInMaster = isColumnActive && masterChordAtStep?.sourceScaleId === scale.id;
-                  const isFirstInCycle = stepIdx % 4 === 0;
+              {chords.length === 0 ? (
+                <div className="py-5 text-center text-xs sm:text-sm font-mono text-slate-500 border-2 border-dashed border-slate-300 rounded-xl bg-white/60">
+                  Formula empty &bull; Add cycle moves above to generate {scale.name} chords
+                </div>
+              ) : (
+                <div
+                  className="overflow-x-auto w-full py-2 flex items-center gap-1.5 sm:gap-3 select-none"
+                  style={{ WebkitOverflowScrolling: 'touch' }}
+                >
+                  {chords.map((chord, stepIdx) => {
+                    const isFirstInCycle = stepIdx % 4 === 0;
 
-                  return (
-                    <div
-                      key={chord.id}
-                      className="flex-shrink-0 flex flex-col items-center group"
-                    >
-                      <button
-                        onClick={() => {
-                          onSelectChord(chord, stepIdx);
-                        }}
-                        onDoubleClick={() => {
-                          onSwapIntoMaster(chord, stepIdx);
-                        }}
-                        style={isSoundingInMaster ? { backgroundColor: scale.color } : undefined}
-                        className={`w-14 sm:w-28 py-2 sm:py-3.5 px-1 sm:px-2 rounded-xl sm:rounded-2xl font-bold font-mono transition-all text-center border-2 relative shadow-sm active:scale-95 ${
-                          isSoundingInMaster
-                            ? 'text-white border-white ring-3 sm:ring-4 ring-slate-900 scale-105 shadow-xl z-20'
-                            : isColumnActive
-                            ? 'bg-white/90 border-slate-400 text-slate-800 ring-2 ring-slate-300 opacity-80'
-                            : isFirstInCycle
-                            ? 'bg-white border-[#c84b31] text-[#c84b31] hover:bg-[#c84b31] hover:text-white'
-                            : 'bg-white border-slate-900 text-slate-900 hover:bg-slate-900 hover:text-white'
-                        }`}
-                        title="Click to preview • Double-click to swap into Master"
-                      >
-                        <div className="text-xs sm:text-lg font-black tracking-tight">
-                          {chord.chordName}
-                        </div>
-                        <div className="text-[9px] sm:text-sm opacity-85 font-mono mt-0.5 font-bold">
-                          {chord.romanNumeral}
-                        </div>
+                    // PLAYING STATE: Show column playhead and sounding master chord
+                    if (isPlaying) {
+                      const isColumnActive = activeChordIndex === stepIdx;
+                      const masterChordAtStep = masterChords[stepIdx];
+                      const isSoundingInMaster = isColumnActive && masterChordAtStep?.sourceScaleId === scale.id;
 
-                        {/* Quick Swap Badge */}
+                      return (
                         <div
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onSwapIntoMaster(chord, stepIdx);
-                          }}
-                          className="hidden group-hover:flex absolute -top-2 -right-1 bg-slate-900 text-white rounded-full w-5 h-5 items-center justify-center text-[10px] font-bold shadow hover:bg-[#c84b31] border border-white"
-                          title="Apply to Master Lane"
+                          key={chord.id}
+                          className="flex-shrink-0 flex flex-col items-center group"
                         >
-                          ↓
-                        </div>
-                      </button>
+                          <button
+                            onClick={() => onSelectChord(chord, stepIdx)}
+                            onDoubleClick={() => onSwapIntoMaster(chord, stepIdx)}
+                            style={isSoundingInMaster ? { backgroundColor: scale.color } : undefined}
+                            className={`w-14 sm:w-28 py-2 sm:py-3.5 px-1 sm:px-2 rounded-xl sm:rounded-2xl font-bold font-mono transition-all text-center border-2 relative shadow-sm active:scale-95 ${
+                              isSoundingInMaster
+                                ? 'text-white border-white ring-3 sm:ring-4 ring-slate-900 scale-105 shadow-xl z-20'
+                                : isColumnActive
+                                ? 'bg-amber-100 border-2 border-amber-600 text-amber-950 ring-2 ring-amber-400 font-black shadow-xs'
+                                : isFirstInCycle
+                                ? 'bg-white border-[#c84b31] text-[#c84b31] hover:bg-[#c84b31] hover:text-white'
+                                : 'bg-white border-slate-900 text-slate-900 hover:bg-slate-900 hover:text-white'
+                            }`}
+                            title="Click to preview • Double-click to swap into Master"
+                          >
+                            <div className="text-xs sm:text-lg font-black tracking-tight">
+                              {chord.chordName}
+                            </div>
+                            <div className="text-[9px] sm:text-sm opacity-85 font-mono mt-0.5 font-bold">
+                              {chord.romanNumeral}
+                            </div>
 
-                      {isSoundingInMaster ? (
-                        <span className="text-[8px] sm:text-[10px] font-mono font-extrabold text-white bg-slate-900 px-1 sm:px-2 py-0.5 rounded-full mt-1 shadow-sm">
-                          ● Active
-                        </span>
-                      ) : (
-                        <span className="text-[9px] sm:text-xs font-mono font-bold text-slate-500 mt-1">
-                          #{stepIdx + 1}
-                        </span>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
+                            {/* Quick Swap Badge */}
+                            <div
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onSwapIntoMaster(chord, stepIdx);
+                              }}
+                              className="hidden group-hover:flex absolute -top-2 -right-1 bg-slate-900 text-white rounded-full w-5 h-5 items-center justify-center text-[10px] font-bold shadow hover:bg-[#c84b31] border border-white"
+                              title="Apply to Master Lane"
+                            >
+                              ↓
+                            </div>
+                          </button>
+
+                          {isSoundingInMaster ? (
+                            <span className="text-[8px] sm:text-[10px] font-mono font-extrabold text-white bg-slate-900 px-1 sm:px-2 py-0.5 rounded-full mt-1 shadow-sm">
+                              ● Active
+                            </span>
+                          ) : isColumnActive ? (
+                            <span className="text-[8px] sm:text-[10px] font-mono font-bold text-amber-800 mt-1">
+                              Col #{stepIdx + 1}
+                            </span>
+                          ) : (
+                            <span className="text-[9px] sm:text-xs font-mono font-bold text-slate-500 mt-1">
+                              #{stepIdx + 1}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    }
+
+                    // PAUSED / STATIC STATE: Only highlight the explicitly selected chord!
+                    const isSelected = selectedChordId === chord.id;
+
+                    return (
+                      <div
+                        key={chord.id}
+                        className="flex-shrink-0 flex flex-col items-center group"
+                      >
+                        <button
+                          onClick={() => onSelectChord(chord, stepIdx)}
+                          onDoubleClick={() => onSwapIntoMaster(chord, stepIdx)}
+                          className={`w-14 sm:w-28 py-2 sm:py-3.5 px-1 sm:px-2 rounded-xl sm:rounded-2xl font-bold font-mono transition-all text-center border-2 relative shadow-sm active:scale-95 ${
+                            isSelected
+                              ? 'bg-slate-900 border-slate-900 text-white ring-3 sm:ring-4 ring-[#c84b31] scale-105 shadow-md z-20'
+                              : isFirstInCycle
+                              ? 'bg-white border-[#c84b31] text-[#c84b31] hover:bg-[#c84b31] hover:text-white'
+                              : 'bg-white border-slate-900 text-slate-900 hover:bg-slate-900 hover:text-white'
+                          }`}
+                          title="Click to preview • Double-click to swap into Master"
+                        >
+                          <div className="text-xs sm:text-lg font-black tracking-tight">
+                            {chord.chordName}
+                          </div>
+                          <div className="text-[9px] sm:text-sm opacity-85 font-mono mt-0.5 font-bold">
+                            {chord.romanNumeral}
+                          </div>
+
+                          {/* Quick Swap Badge */}
+                          <div
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onSwapIntoMaster(chord, stepIdx);
+                            }}
+                            className="hidden group-hover:flex absolute -top-2 -right-1 bg-slate-900 text-white rounded-full w-5 h-5 items-center justify-center text-[10px] font-bold shadow hover:bg-[#c84b31] border border-white"
+                            title="Apply to Master Lane"
+                          >
+                            ↓
+                          </div>
+                        </button>
+
+                        {isSelected ? (
+                          <span className="text-[8px] sm:text-[10px] font-mono font-bold text-white bg-slate-900 px-1.5 py-0.5 rounded-full mt-1 shadow-sm">
+                            Selected
+                          </span>
+                        ) : (
+                          <span className="text-[9px] sm:text-xs font-mono font-bold text-slate-500 mt-1">
+                            #{stepIdx + 1}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           );
         })}

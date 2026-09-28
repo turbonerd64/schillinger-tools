@@ -162,6 +162,10 @@ export function generateRailChords(
   structure: ChordStructureType,
   totalChordsCount: number
 ): ChordItem[] {
+  if (!formula || formula.length === 0) {
+    return [];
+  }
+
   const N = scaleDef.intervals.length;
   const scalePitches = scaleDef.intervals.map((int) => (tonicRoot + int) % 12);
   const chords: ChordItem[] = [];

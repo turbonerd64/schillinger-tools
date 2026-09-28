@@ -145,65 +145,79 @@ export const MasterProgressionLane: React.FC<MasterProgressionLaneProps> = ({
       </div>
 
       {/* Horizontal Master Sequence with Full Color Matching and Drag Selection */}
-      <div
-        className="overflow-x-auto w-full py-2 sm:py-3 flex items-center gap-1.5 sm:gap-3 select-none"
-        style={{ WebkitOverflowScrolling: 'touch' }}
-      >
-        {masterChords.map((chord, idx) => {
-          const isCurrent = activeChordIndex === idx;
-          const isSelected = selectedRange !== null && idx >= selectedRange[0] && idx <= selectedRange[1];
+      {masterChords.length === 0 ? (
+        <div className="w-full py-8 px-6 rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 flex flex-col items-center justify-center text-center space-y-2">
+          <div className="w-10 h-10 rounded-full bg-[#fdf0ec] text-[#c84b31] flex items-center justify-center font-bold">
+            <ArrowLeftRight className="w-5 h-5" />
+          </div>
+          <div className="text-sm font-extrabold font-mono text-slate-800 uppercase">
+            No Chords in Progression &bull; Formula Empty
+          </div>
+          <p className="text-xs sm:text-sm text-slate-500 max-w-md">
+            All cycle moves have been cleared. Click any movement button above (<span className="font-bold text-slate-800">+ C3, + C5, + C7</span>) or choose a preset to construct your progression.
+          </p>
+        </div>
+      ) : (
+        <div
+          className="overflow-x-auto w-full py-2 sm:py-3 flex items-center gap-1.5 sm:gap-3 select-none"
+          style={{ WebkitOverflowScrolling: 'touch' }}
+        >
+          {masterChords.map((chord, idx) => {
+            const isCurrent = activeChordIndex === idx;
+            const isSelected = selectedRange !== null && idx >= selectedRange[0] && idx <= selectedRange[1];
 
-          return (
-            <div key={`master-${chord.id}-${idx}`} className="flex-shrink-0 flex flex-col items-center">
-              <button
-                ref={(el) => {
-                  chordCardRefs.current[idx] = el;
-                }}
-                onMouseDown={() => handleMouseDown(idx, chord)}
-                onMouseEnter={() => handleMouseEnter(idx)}
-                onClick={() => handleChordClick(idx, chord)}
-                style={{
-                  backgroundColor: chord.sourceColor,
-                }}
-                className={`w-14 sm:w-28 py-2 sm:py-4 px-1 sm:px-2.5 rounded-xl sm:rounded-2xl font-bold font-mono transition-all text-center border-2 text-white relative shadow-sm cursor-pointer select-none ${
-                  isSelected
-                    ? 'ring-3 sm:ring-4 ring-[#c84b31] border-white scale-105 z-10 shadow-lg'
-                    : isCurrent
-                    ? 'ring-3 sm:ring-4 ring-slate-900 border-white scale-105 shadow-md'
-                    : 'border-slate-900/40 hover:brightness-110'
-                }`}
-                title={`Click or drag to select • Source: ${chord.sourceScaleName}`}
-              >
-                {/* Chord Symbol */}
-                <div className="text-xs sm:text-lg font-black tracking-tight drop-shadow-xs">
-                  {chord.chordName}
-                </div>
-                {/* Roman Numeral */}
-                <div className="text-[9px] sm:text-sm opacity-90 font-mono mt-0.5 sm:mt-1 font-bold">
-                  {chord.romanNumeral}
-                </div>
+            return (
+              <div key={`master-${chord.id}-${idx}`} className="flex-shrink-0 flex flex-col items-center">
+                <button
+                  ref={(el) => {
+                    chordCardRefs.current[idx] = el;
+                  }}
+                  onMouseDown={() => handleMouseDown(idx, chord)}
+                  onMouseEnter={() => handleMouseEnter(idx)}
+                  onClick={() => handleChordClick(idx, chord)}
+                  style={{
+                    backgroundColor: chord.sourceColor,
+                  }}
+                  className={`w-14 sm:w-28 py-2 sm:py-4 px-1 sm:px-2.5 rounded-xl sm:rounded-2xl font-bold font-mono transition-all text-center border-2 text-white relative shadow-sm cursor-pointer select-none ${
+                    isSelected
+                      ? 'ring-3 sm:ring-4 ring-[#c84b31] border-white scale-105 z-10 shadow-lg'
+                      : isCurrent
+                      ? 'ring-3 sm:ring-4 ring-slate-900 border-white scale-105 shadow-md'
+                      : 'border-slate-900/40 hover:brightness-110'
+                  }`}
+                  title={`Click or drag to select • Source: ${chord.sourceScaleName}`}
+                >
+                  {/* Chord Symbol */}
+                  <div className="text-xs sm:text-lg font-black tracking-tight drop-shadow-xs">
+                    {chord.chordName}
+                  </div>
+                  {/* Roman Numeral */}
+                  <div className="text-[9px] sm:text-sm opacity-90 font-mono mt-0.5 sm:mt-1 font-bold">
+                    {chord.romanNumeral}
+                  </div>
 
-                {isSelected && (
-                  <span className="absolute -top-2 -right-1 bg-[#c84b31] text-white text-[7px] sm:text-[9px] font-black uppercase tracking-wider px-1 py-0.2 rounded-full border border-white shadow-xs">
-                    Sel
-                  </span>
-                )}
-              </button>
+                  {isSelected && (
+                    <span className="absolute -top-2 -right-1 bg-[#c84b31] text-white text-[7px] sm:text-[9px] font-black uppercase tracking-wider px-1 py-0.2 rounded-full border border-white shadow-xs">
+                      Sel
+                    </span>
+                  )}
+                </button>
 
-              {/* Source Scale Name Tag */}
-              <span
-                className={`text-[9px] sm:text-xs font-mono font-bold mt-1 px-1 sm:px-2 py-0.5 rounded-full border transition-all ${
-                  isSelected
-                    ? 'bg-[#c84b31] text-white border-[#c84b31]'
-                    : 'bg-slate-50 border-slate-300 text-slate-700'
-                }`}
-              >
-                {chord.sourceScaleName.split(' ')[0]}
-              </span>
-            </div>
-          );
-        })}
-      </div>
+                {/* Source Scale Name Tag */}
+                <span
+                  className={`text-[9px] sm:text-xs font-mono font-bold mt-1 px-1 sm:px-2 py-0.5 rounded-full border transition-all ${
+                    isSelected
+                      ? 'bg-[#c84b31] text-white border-[#c84b31]'
+                      : 'bg-slate-50 border-slate-300 text-slate-700'
+                  }`}
+                >
+                  {chord.sourceScaleName.split(' ')[0]}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Floating Context-Menu Popover (Fixed, never pushes down the lane or gets clipped!) */}
       {popoverPos && selectedRange !== null && (
