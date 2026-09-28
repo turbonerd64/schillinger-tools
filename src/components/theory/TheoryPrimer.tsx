@@ -24,15 +24,15 @@ export const TheoryPrimer: React.FC = () => {
       <div className="bg-white border-2 border-slate-900 rounded-3xl p-6 sm:p-8 shadow-sm space-y-5">
         <div className="flex items-center gap-2 text-xs font-mono font-bold uppercase tracking-wider text-[#c84b31] bg-[#fdf0ec] px-3 py-1 rounded-full w-fit border border-[#c84b31]/30">
           <BookOpen className="w-4 h-4" />
-          The Schillinger System Educational Guide
+          Theory Overview &amp; Reference Guide
         </div>
 
         <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 tracking-tight leading-tight">
-          A Universal Mathematical Language for Rhythm, Scale, and Harmony
+          An Alternative Mathematical Model for Rhythm, Scale, and Harmony
         </h1>
 
         <p className="text-base sm:text-lg text-slate-600 leading-relaxed font-sans">
-          In <em>The Schillinger System of Musical Composition</em> (1941), Russian mathematician, theorist, and composer Joseph Schillinger showed that musical composition does not rely on arbitrary trial-and-error rules. By translating rhythm, melody, and chord motion into periodic interferences, cyclic modular arithmetic, and geometric projections, any musical style can be generated with mathematical precision.
+          Rather than presenting itself as a definitive authority on music or replacing creative intuition, the framework developed by Joseph Schillinger offers a practical alternative model for conceptualizing musical materials. By looking at rhythm, scale structures, and harmonic movement through periodic wave interference, modular cyclic math, and geometric symmetry, it provides composers and producers with an open generative toolkit—revealing fresh structural possibilities, unexpected cadential turns, and rich polyrhythmic relationships that traditional theory books rarely explore.
         </p>
 
         {/* Quick Navigation Anchor Bar */}
@@ -77,7 +77,7 @@ export const TheoryPrimer: React.FC = () => {
 
         <div className="bg-white border-2 border-slate-900 rounded-3xl p-6 sm:p-8 shadow-sm space-y-4 text-slate-700 text-base sm:text-lg leading-relaxed">
           <p>
-            Traditional musical notation represents time using symbols (quarters, eighths, sixteenths) based on arbitrary division by two. Schillinger demonstrated that this notation limits creative exploration and proposed analyzing rhythm through three synchronized coordinates: <strong>Numbers</strong>, <strong>Graphs</strong>, and <strong>Sound</strong>.
+            Where traditional notation represents time through fractional note symbols (quarters, eighths, sixteenths), this model analyzes rhythm through three synchronized coordinates: <strong>Numbers</strong>, <strong>Graphs</strong>, and <strong>Sound</strong>.
           </p>
 
           <div className="p-4 rounded-2xl bg-[#fdf0ec] border-2 border-[#c84b31]/30 space-y-2">
@@ -108,11 +108,11 @@ export const TheoryPrimer: React.FC = () => {
 
         <div className="bg-white border-2 border-slate-900 rounded-3xl p-6 sm:p-8 shadow-sm space-y-4 text-slate-700 text-base sm:text-lg leading-relaxed">
           <p>
-            Standard classical harmony classifies chord progressions through functional roles: Tonic (I), Subdominant (IV), and Dominant (V). Schillinger showed that functional harmony is only one narrow sub-system.
+            While traditional music theory typically models chord progressions through functional harmonic roles (Tonic, Subdominant, and Dominant), the Schillinger framework treats functional harmony as just one of many possible cyclic configurations.
           </p>
 
           <p>
-            In his broader theory, chords move according to <strong>Harmonic Root Cycles</strong> (C) through any chosen <strong>Parent Scale</strong>:
+            In this model, chords advance along symmetric <strong>Harmonic Root Cycles</strong> (C) projected through any chosen <strong>Parent Scale</strong>:
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2">
