@@ -60,6 +60,17 @@ export function App() {
   const [activeTick, setActiveTick] = useState<number>(0);
   const [playheadProgress, setPlayheadProgress] = useState<number>(0);
 
+  const handleBpmChange = useCallback((newBpm: number) => {
+    const clamped = Math.max(30, Math.min(300, newBpm));
+    setBpm(clamped);
+    audioService.setBpm(clamped);
+  }, []);
+
+  // Sync tempo changes to Web Audio engine
+  useEffect(() => {
+    audioService.setBpm(bpm);
+  }, [bpm]);
+
   // Stop / pause audio when changing tabs
   useEffect(() => {
     if (activeTab !== 'rhythm' && isPlayingRhythm) {
@@ -159,6 +170,7 @@ export function App() {
   }, []);
 
   const handlePlayRhythm = () => {
+    audioService.setBpm(bpm);
     audioService.play();
     setIsPlayingRhythm(true);
   };
@@ -233,7 +245,7 @@ export function App() {
               setMetricGrouping={setMetricGrouping}
               totalLength={resultant.totalLength}
               bpm={bpm}
-              setBpm={setBpm}
+              setBpm={handleBpmChange}
               variations={variations}
               setVariations={setVariations}
               selectedPresetId={selectedPresetId}

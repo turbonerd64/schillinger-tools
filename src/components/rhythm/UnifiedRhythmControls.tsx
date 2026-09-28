@@ -376,7 +376,7 @@ export const UnifiedRhythmControls: React.FC<UnifiedRhythmControlsProps> = ({
               min={40}
               max={240}
               value={bpm}
-              onChange={(e) => setBpm(parseInt(e.target.value))}
+              onChange={(e) => setBpm(parseInt(e.target.value, 10) || 100)}
               className="w-20 sm:w-28 h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#c84b31]"
               title="Rhythm Tempo (BPM)"
             />
